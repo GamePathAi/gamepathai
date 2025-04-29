@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Network, ChevronRight, RefreshCw, Zap, Wifi, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 const ConnectionOptimizer = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -92,9 +93,9 @@ const ConnectionOptimizer = () => {
             <span className="text-gray-400">Optimizing connection...</span>
             <span className="text-cyber-blue">{progress}%</span>
           </div>
-          <div className="w-full bg-gray-800 rounded-full h-2.5">
+          <div className="progress-container">
             <div 
-              className="bg-gradient-to-r from-cyber-green to-cyber-blue h-2.5 rounded-full transition-all duration-200"
+              className={cn("progress-bar progress-optimizing")}
               style={{ width: `${progress}%` }}
             ></div>
           </div>

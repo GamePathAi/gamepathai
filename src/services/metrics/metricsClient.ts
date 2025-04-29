@@ -19,6 +19,12 @@ export const metricsClient = {
       } catch (error: any) {
         lastError = error;
         
+        // If we got HTML instead of JSON, don't retry
+        if (error.isHtmlResponse) {
+          console.warn(`Received HTML response from ${endpoint} when JSON was expected.`);
+          break;
+        }
+        
         // Se erro for diferente de problemas de rede, não tente novamente
         if (error.status && typeof error.status === 'number' && error.status !== 0 && error.status !== 408 && error.status !== 429) {
           break;

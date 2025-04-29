@@ -11,10 +11,12 @@ interface StripeProviderProps {
 }
 
 export const StripeProvider: React.FC<StripeProviderProps> = ({ children }) => {
+  // Configure Stripe Elements with CSP-compatible options
   const options = {
     mode: 'payment' as const,
     amount: 1000,
     currency: 'usd',
+    // Use class-based styling instead of inline styles for CSP compatibility
     appearance: {
       theme: 'night' as const,
       variables: {
@@ -25,7 +27,25 @@ export const StripeProvider: React.FC<StripeProviderProps> = ({ children }) => {
         fontFamily: 'Inter, system-ui, sans-serif',
         borderRadius: '4px',
       },
+      rules: {
+        '.Input': {
+          backgroundColor: 'var(--colorBackground)',
+          borderColor: 'var(--colorPrimary)',
+        },
+        '.Input:focus': {
+          borderColor: 'var(--colorPrimary)',
+          boxShadow: '0 0 0 1px var(--colorPrimary)'
+        },
+        '.Label': {
+          color: 'var(--colorText)'
+        },
+        '.Error': {
+          color: 'var(--colorDanger)'
+        }
+      }
     },
+    // Set loader to 'never' to avoid additional network requests
+    loader: 'never' as const
   };
 
   return (

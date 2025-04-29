@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Network, ChevronRight, RefreshCw, Zap, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 const RouteOptimizer = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -92,9 +93,9 @@ const RouteOptimizer = () => {
             <span className="text-gray-400">Finding optimal routes...</span>
             <span className="text-cyber-purple">{progress}%</span>
           </div>
-          <div className="w-full bg-gray-800 rounded-full h-2.5">
+          <div className="progress-container">
             <div 
-              className="bg-gradient-to-r from-cyber-blue to-cyber-purple h-2.5 rounded-full transition-all duration-200"
+              className={cn("progress-bar bg-gradient-to-r from-cyber-blue to-cyber-purple")}
               style={{ width: `${progress}%` }}
             ></div>
           </div>

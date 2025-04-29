@@ -1,0 +1,135 @@
+
+/* Component-specific styles that were previously inline */
+
+/* Card and panel styles */
+.cyber-glow {
+  box-shadow: 0 0 15px rgba(51, 195, 240, 0.3) !important;
+}
+
+/* Button status effects */
+.status-connecting {
+  @apply bg-amber-500/20 border-amber-500/50 text-amber-500;
+}
+
+.status-connected {
+  @apply bg-cyber-green/20 border-cyber-green/50 text-cyber-green;
+}
+
+.status-disconnected {
+  @apply bg-cyber-darkblue/80 border-gray-500/30 text-gray-400;
+}
+
+/* Progress bars */
+.progress-container {
+  @apply w-full bg-gray-800 rounded-full h-2.5;
+}
+
+.progress-bar {
+  @apply h-2.5 rounded-full transition-all duration-200;
+}
+
+.progress-optimizing {
+  @apply bg-gradient-to-r from-cyber-green to-cyber-blue;
+}
+
+/* Background gradients */
+.bg-cyber-gradient {
+  background: linear-gradient(135deg, rgba(51, 195, 240, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+}
+
+.bg-dark-gradient {
+  background: linear-gradient(to bottom, #121223 0%, #0a0a14 100%);
+}
+
+/* Component specific margins/paddings that were inline */
+.chart-wrapper {
+  height: 180px !important;
+  max-height: 180px !important;
+}
+
+/* Alert styles */
+.alert-offline {
+  @apply bg-amber-500/10 border-amber-500/50;
+}
+
+.alert-offline-text {
+  @apply text-amber-500;
+}
+
+/* Text with decorative elements */
+.text-with-line {
+  @apply relative;
+}
+
+.text-with-line::after {
+  content: '';
+  @apply absolute bottom-0 left-0 w-1/4 h-0.5 bg-cyber-blue rounded;
+}
+
+/* Connection status indicators */
+.status-indicator {
+  @apply inline-block w-2 h-2 rounded-full;
+}
+
+.status-indicator.active {
+  @apply bg-cyber-green animate-pulse;
+}
+
+.status-indicator.inactive {
+  @apply bg-gray-500;
+}
+
+/* Transition effects */
+.hover-scale {
+  @apply transition-all duration-300;
+}
+
+.hover-scale:hover {
+  @apply transform scale-105;
+}
+
+/* Progress indicators */
+.latency-low {
+  @apply text-cyber-green;
+}
+
+.latency-medium {
+  @apply text-amber-400;
+}
+
+.latency-high {
+  @apply text-red-500;
+}
+
+/* Route optimizer specific styles */
+.route-optimizer-progress {
+  @apply bg-gradient-to-r from-cyber-blue to-cyber-purple;
+}
+
+/* Stripe Elements CSS-based styling (CSP compatible) */
+.stripe-input-class {
+  background-color: #1a1a2e;
+  border: 1px solid #33C3F0;
+  border-radius: 4px;
+  color: white;
+  padding: 10px;
+  font-size: 16px;
+}
+
+.stripe-input-focus-class {
+  border-color: #33C3F0;
+  box-shadow: 0 0 0 2px rgba(51, 195, 240, 0.3);
+}
+
+.stripe-label-class {
+  color: #a0aec0;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.stripe-error-class {
+  color: #F43F5E;
+  margin-top: 4px;
+  font-size: 12px;
+}
+

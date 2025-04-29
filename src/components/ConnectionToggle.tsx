@@ -1,15 +1,21 @@
 
 import React from "react";
 import { Power, AlertTriangle, Wifi, WifiOff } from "lucide-react";
-import { Toggle } from "@/components/ui/toggle";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useVpn } from "@/hooks/useVpn";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ConnectionToggle: React.FC = () => {
-  const { status, connect, disconnect, isConnecting, isDisconnecting, isBackendOnline, refetch } = useVpn();
-  const isConnected = status?.connected || false;
+  const { 
+    status, 
+    connect, 
+    disconnect, 
+    isConnecting, 
+    isDisconnecting, 
+    isBackendOnline, 
+    refetch,
+    isConnected
+  } = useVpn();
 
   const toggleConnection = async () => {
     if (isConnecting || isDisconnecting) return;
@@ -17,20 +23,18 @@ const ConnectionToggle: React.FC = () => {
     try {
       if (isConnected) {
         await disconnect();
-        toast.info("GamePath AI Desconectado", {
-          description: "Recursos de otimização foram pausados",
-        });
       } else {
         await connect(status?.recommendedServer || "auto");
-        toast.success("GamePath AI Conectado", {
-          description: "Todos os recursos de otimização estão ativos",
-        });
       }
     } catch (error) {
-      toast.error("Falha na conexão", {
-        description: "Por favor, tente novamente mais tarde",
-      });
+      console.error("Connection toggle error:", error);
     }
+  };
+
+  const getButtonStatusClass = () => {
+    if (isConnecting || isDisconnecting) return "opacity-50 cursor-not-allowed";
+    if (isConnected) return "status-connected hover:bg-cyber-green/30";
+    return "status-disconnected hover:bg-cyber-darkblue hover:text-white";
   };
 
   return (
@@ -64,20 +68,14 @@ const ConnectionToggle: React.FC = () => {
         disabled={isConnecting || isDisconnecting}
         className={cn(
           "font-tech text-xs px-3 py-1.5 rounded flex items-center gap-1.5 transition-all duration-300",
-          isConnected 
-            ? "bg-cyber-green/20 border border-cyber-green/50 text-cyber-green hover:bg-cyber-green/30" 
-            : "bg-cyber-darkblue/80 border border-gray-500/30 text-gray-400 hover:bg-cyber-darkblue hover:text-white",
-          (isConnecting || isDisconnecting) && "opacity-50 cursor-not-allowed"
+          getButtonStatusClass()
         )}
+        aria-label={isConnected ? "Desconectar" : "Conectar"}
       >
-        <span 
-          className={cn(
-            "inline-block w-2 h-2 rounded-full",
-            isConnected 
-              ? "bg-cyber-green animate-pulse" 
-              : "bg-gray-500"
-          )}
-        />
+        <span className={cn(
+          "status-indicator",
+          isConnected ? "active" : "inactive"
+        )} />
         {isConnecting ? "CONECTANDO..." : 
          isDisconnecting ? "DESCONECTANDO..." : 
          isConnected ? "CONECTADO" : "DESCONECTADO"}

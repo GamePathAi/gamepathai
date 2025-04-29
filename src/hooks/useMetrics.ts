@@ -3,19 +3,34 @@ import { useQuery } from "@tanstack/react-query";
 import { metricsService } from "../services/metricsService";
 import { useState, useEffect } from "react";
 import { MetricData, SystemData } from "../types/metrics";
+import { getApiBaseUrl } from "../utils/urlRedirects";
 
 export function useMetrics(gameId?: string) {
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  const apiBaseUrl = getApiBaseUrl();
   
   // Verificar se estamos em modo offline (backend indisponível)
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const response = await fetch("http://gamepathai-dev-lb-1728469102.us-east-1.elb.amazonaws.com/api/health", { 
+        // Ensure we use a clean URL without duplicated /api/
+        const healthUrl = `${apiBaseUrl}/health`.replace(/\/api\/api\//g, '/api/');
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const response = await fetch(healthUrl, { 
           mode: 'cors',
           method: 'HEAD',
-          cache: 'no-cache'
+          headers: {
+            "Accept": "application/json",
+            "X-No-Redirect": "1"
+          },
+          cache: 'no-cache',
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         setIsOfflineMode(!response.ok);
       } catch (error) {
         setIsOfflineMode(true);
@@ -26,7 +41,7 @@ export function useMetrics(gameId?: string) {
     const interval = setInterval(checkBackend, 60000); // Verificar a cada minuto
     
     return () => clearInterval(interval);
-  }, []);
+  }, [apiBaseUrl]);
   
   const pingQuery = useQuery({
     queryKey: ["metrics", "ping"],

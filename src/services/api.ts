@@ -1,11 +1,14 @@
-
-// Configuração do ambiente
+﻿// Configuração do ambiente
 const API_ENV = {
   production: "http://gamepathai-dev-lb-1728469102.us-east-1.elb.amazonaws.com",
   local: "http://localhost:3000" // Ajuste esta porta para a do seu servidor local
 };
 
-const API_BASE_URL = import.meta.env.VITE_USE_LOCAL_API ? API_ENV.local : API_ENV.production;
+// Forçar uso do ambiente local para testes
+const API_BASE_URL = API_ENV.local; // Forçando uso do servidor local
+
+// Log para diagnóstico - verificar qual URL está sendo usada
+console.log("API_BASE_URL sendo usado:", API_BASE_URL);
 
 export const apiClient = {
   async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -22,18 +25,18 @@ export const apiClient = {
     
     try {
       console.log(`Fazendo requisição para: ${url}`);
+      
+      // Removi temporariamente credentials: include para testes iniciais
       const response = await fetch(url, {
         ...options,
         headers,
-        mode: 'cors',
-        credentials: 'include'
+        mode: "cors"
       });
       
       if (!response.ok) {
         if (response.status === 401) {
           console.log("Token expirado, tentando renovar...");
           const renewed = await tryRenewToken();
-          
           if (renewed) {
             return apiClient.fetch<T>(endpoint, options);
           }
@@ -49,9 +52,13 @@ export const apiClient = {
       return response.json() as Promise<T>;
     } catch (error) {
       console.error(`Falha na requisição para ${endpoint}:`, error);
+      
+      // Log adicional para diagnóstico de erros
+      console.log("Detalhes do erro:", JSON.stringify(error, null, 2));
+      
       throw {
-        status: 'error',
-        message: 'Falha ao buscar dados do servidor',
+        status: "error",
+        message: "Falha ao buscar dados do servidor",
         originalError: error
       };
     }
@@ -70,8 +77,8 @@ async function tryRenewToken() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
-      mode: 'cors',
-      credentials: 'include'
+      mode: "cors"
+      // Removi temporariamente credentials: include para testes
     });
     
     if (!response.ok) return false;
@@ -92,8 +99,10 @@ async function tryRenewToken() {
 // Função para testar a conexão com o backend
 export const testBackendConnection = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/health`, { 
-      mode: 'cors',
+    console.log("Testando conexão com:", `${API_BASE_URL}/api/health`);
+    
+    const response = await fetch(`${API_BASE_URL}/api/health`, {
+      mode: "cors",
       headers: {
         "Content-Type": "application/json"
       }
@@ -108,6 +117,12 @@ export const testBackendConnection = async () => {
     }
   } catch (error) {
     console.error("Backend connection test failed:", error);
+    console.log("Detalhes do erro de conexão:", JSON.stringify(error, null, 2));
     return false;
   }
 };
+
+// Executar teste de conexão ao carregar
+testBackendConnection()
+  .then(isConnected => console.log("Resultado do teste de conexão:", isConnected))
+  .catch(err => console.error("Erro ao testar conexão:", err));

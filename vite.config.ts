@@ -27,13 +27,6 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     // Force disable HMR (Hot Module Replacement) to prevent redirects
     hmr: false,
-    // Add allowed hosts configuration - include Lovable domains
-    allowedHosts: [
-      'localhost', 
-      '127.0.0.1',
-      '*.lovableproject.com',  // Wildcard for all Lovable project domains
-      '*.lovable.app'          // For production Lovable domains
-    ],
     proxy: {
       // Enhanced proxy configuration to prevent redirects
       '/': {

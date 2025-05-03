@@ -2,78 +2,51 @@
  * URL sanitization utilities
  */
 
-import { isProduction } from './environmentDetection';
+/**
+ * Converts relative URLs to absolute URLs if needed
+ * @param url The URL to fix
+ * @param baseUrl Optional base URL to use
+ */
+export const fixAbsoluteUrl = (url: string, baseUrl?: string): string => {
+  if (!url) return '';
+  
+  // If the URL is already absolute, return it
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // If URL starts with a slash, prepend the base URL
+  if (url.startsWith('/')) {
+    const base = baseUrl || window.location.origin;
+    return base + url;
+  }
+  
+  // Otherwise, it's a relative path, add a slash and prepend the base URL
+  const base = baseUrl || window.location.origin;
+  return base + '/' + url;
+};
 
 /**
- * Sanitizes an API URL to ensure it's properly formatted
- * This helps prevent redirects by making sure we use relative URLs
+ * Sanitizes a URL to prevent XSS attacks and ensures it's properly formatted
+ * @param url URL to sanitize
  */
 export const sanitizeApiUrl = (url: string): string => {
-  // If the URL is already relative (doesn't start with http), return as is
-  if (!url.startsWith('http')) {
-    return url;
-  }
-
+  // Trim whitespace and remove null bytes
+  let sanitized = url.trim().replace(/\0/g, '');
+  
+  // Remove any javascript: protocol URLs
+  sanitized = sanitized.replace(/javascript:/gi, '');
+  
+  // Remove data: URLs
+  sanitized = sanitized.replace(/data:/gi, '');
+  
+  // Ensure we have a valid URL
   try {
-    // Parse the URL to extract just the pathname and search params
-    const parsedUrl = new URL(url);
-    
-    // Log what we're doing
-    console.log(`🔄 Convertendo URL absoluta para relativa: ${url} -> ${parsedUrl.pathname}${parsedUrl.search}`);
-    
-    // Return just the path and query string
-    return `${parsedUrl.pathname}${parsedUrl.search}`;
-  } catch (error) {
-    console.warn('Failed to sanitize URL, returning original:', url);
-    return url;
-  }
-};
-
-/**
- * Fix an absolute URL to use the correct domain/protocol
- * Primarily used for dealing with localhost references in production
- */
-export const fixAbsoluteUrl = (url: string): string => {
-  // Already a relative URL
-  if (!url.startsWith('http')) {
-    return url;
+    new URL(sanitized);
+  } catch (e) {
+    // If not a valid URL, assume it's a relative path
+    sanitized = fixAbsoluteUrl(sanitized);
   }
   
-  try {
-    const currentOrigin = window.location.origin;
-    const urlObj = new URL(url);
-    
-    // If it's a localhost URL or AWS URL and we're in production
-    if ((urlObj.hostname.includes('localhost') || 
-         urlObj.hostname.includes('gamepathai-dev')) && 
-        isProduction()) {
-      // Replace with relative URL
-      return sanitizeApiUrl(url);
-    }
-    
-    return url;
-  } catch (error) {
-    console.warn('Failed to fix absolute URL:', url);
-    return url;
-  }
-};
-
-/**
- * Convert any absolute URLs to relative ones for API calls
- * This is important to prevent redirects
- */
-export const ensureRelativeApiUrl = (endpoint: string): string => {
-  // If it's already a relative URL, make sure it has a leading slash
-  if (!endpoint.startsWith('http')) {
-    return endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  }
-  
-  // Otherwise, try to extract just the path from the URL
-  try {
-    const urlObj = new URL(endpoint);
-    return urlObj.pathname + urlObj.search;
-  } catch (error) {
-    console.warn('Failed to convert to relative URL:', endpoint);
-    return endpoint;
-  }
+  return sanitized;
 };

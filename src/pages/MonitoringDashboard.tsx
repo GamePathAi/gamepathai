@@ -1,369 +1,495 @@
 
 import React from "react";
 import Layout from "@/components/Layout";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Helmet } from "react-helmet-async";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { testBackendConnection, testAWSConnection } from "@/services/api";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"; // Add this import for Badge
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { Download, RefreshCw, Clock, Settings, Bell, CloudLightning } from "lucide-react";
+import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
 import { cloudwatchClient } from "@/services/monitoring/cloudwatchClient";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle, Info, ArrowUpDown, Gauge, BarChart } from "lucide-react";
-import RedirectsDiagnostic from "@/components/diagnostics/RedirectsDiagnostic";
-import RedirectBlocker from "@/components/diagnostics/RedirectBlocker";
+import { ALERT_THRESHOLDS } from "@/services/monitoring/alarmsService";
 
-const MonitoringDashboard: React.FC = () => {
-  const [backendStatus, setBackendStatus] = React.useState<{ status: string; timestamp: Date | null }>({
-    status: "unknown",
-    timestamp: null,
-  });
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [isCloudWatchAvailable, setIsCloudWatchAvailable] = React.useState(false);
-  const [awsAccessKey, setAwsAccessKey] = React.useState(localStorage.getItem("aws_access_key_id") || "");
-  const [awsSecretKey, setAwsSecretKey] = React.useState(localStorage.getItem("aws_secret_access_key") || "");
-  const [activeTab, setActiveTab] = React.useState("connection");
-  const [showCredentials, setShowCredentials] = React.useState(false);
-  const [metrics, setMetrics] = React.useState<{ name: string; value: string; unit: string }[]>([
-    { name: "api_latency", value: "120", unit: "Milliseconds" },
-    { name: "error_rate", value: "0.5", unit: "Percent" },
-    { name: "requests", value: "256", unit: "Count" }
-  ]);
-  const [metricName, setMetricName] = React.useState("");
-  const [metricValue, setMetricValue] = React.useState("");
-  const [metricUnit, setMetricUnit] = React.useState("Count");
-
-  // Verificar a conexão com o backend quando o componente é montado
-  React.useEffect(() => {
-    checkBackendStatus();
-    checkCloudWatchStatus();
-  }, []);
-
-  // Verificar o status do CloudWatch
-  const checkCloudWatchStatus = () => {
-    const isAvailable = cloudwatchClient.isAvailable();
-    setIsCloudWatchAvailable(isAvailable);
-  };
-
-  // Verificar o status do backend
-  const checkBackendStatus = async () => {
-    setIsLoading(true);
-    try {
-      const isConnected = await testBackendConnection();
-      const isAwsConnected = await testAWSConnection();
-      
-      setBackendStatus({
-        status: isConnected ? "connected" : "disconnected",
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Error checking backend status:", error);
-      setBackendStatus({
-        status: "error",
-        timestamp: new Date(),
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Salvar credenciais da AWS
-  const saveAwsCredentials = () => {
-    localStorage.setItem("aws_access_key_id", awsAccessKey);
-    localStorage.setItem("aws_secret_access_key", awsSecretKey);
-    
-    // Atualizar o status do CloudWatch
-    setTimeout(() => {
-      checkCloudWatchStatus();
-    }, 500);
-  };
-
-  // Publicar uma métrica no CloudWatch
-  const publishMetric = async () => {
-    if (!metricName || !metricValue) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const value = parseFloat(metricValue);
-      if (isNaN(value)) {
-        throw new Error("Valor da métrica deve ser um número");
-      }
-      
-      const success = await cloudwatchClient.publishMetric(
-        metricName,
-        value,
-        metricUnit,
-        { source: "dashboard", environment: process.env.NODE_ENV || "development" }
-      );
-
-      if (success) {
-        // Adicionar à lista de métricas
-        setMetrics([
-          ...metrics,
-          { name: metricName, value: metricValue, unit: metricUnit }
-        ]);
-        
-        // Limpar campos
-        setMetricName("");
-        setMetricValue("");
-      }
-    } catch (error) {
-      console.error("Erro ao publicar métrica:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+const MonitoringDashboard = () => {
+  const { 
+    ping, 
+    jitter, 
+    fps, 
+    system, 
+    isOfflineMode, 
+    monitoringEnabled, 
+    setMonitoringEnabled,
+    refetch
+  } = useAdvancedMetrics();
+  
+  const isCloudwatchAvailable = cloudwatchClient.isAvailable();
+  
   return (
     <Layout>
-      <div className="container mx-auto py-6">
-        <h1 className="text-2xl font-bold mb-6">Monitoramento e Diagnóstico</h1>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="connection">Conexão</TabsTrigger>
-            <TabsTrigger value="cloudwatch">CloudWatch</TabsTrigger>
-            <TabsTrigger value="diagnostics">Diagnósticos</TabsTrigger>
+      <Helmet>
+        <title>Monitoring Dashboard | GamePath AI</title>
+      </Helmet>
+      
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-cyber font-bold text-white">Monitoring Dashboard</h1>
+            <p className="text-gray-400">Advanced metrics and performance monitoring</p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => refetch()}
+            >
+              <RefreshCw size={16} className="mr-2" />
+              Refresh Data
+            </Button>
+            
+            <Button 
+              variant={monitoringEnabled ? "default" : "outline"}
+              size="sm"
+              className={monitoringEnabled ? "bg-cyber-green hover:bg-cyber-green/90" : ""}
+              onClick={() => setMonitoringEnabled(!monitoringEnabled)}
+            >
+              {monitoringEnabled ? "Monitoring Active" : "Monitoring Disabled"}
+            </Button>
+          </div>
+        </div>
+        
+        {isOfflineMode && (
+          <Card className="bg-amber-900/20 border border-amber-500/30 mb-6">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2">
+                <CloudLightning size={18} className="text-amber-500" />
+                <p className="text-amber-300">
+                  You are currently in offline mode. Some advanced monitoring features are limited.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {!isCloudwatchAvailable && (
+          <Card className="bg-blue-900/20 border border-blue-500/30 mb-6">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2">
+                <Bell size={18} className="text-blue-400" />
+                <p className="text-blue-300">
+                  CloudWatch integration is not available. Your metrics are being monitored locally only.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="network">Network Metrics</TabsTrigger>
+            <TabsTrigger value="system">System Metrics</TabsTrigger>
+            <TabsTrigger value="alerts">Alerts & Thresholds</TabsTrigger>
           </TabsList>
-
-          {/* Tab de status de conexão */}
-          <TabsContent value="connection">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
+          
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard 
+                title="Current Ping" 
+                value={ping?.current || 0} 
+                unit="ms"
+                trend={ping?.trend || "stable"}
+              />
+              <MetricCard 
+                title="Connection Jitter" 
+                value={jitter?.current || 0} 
+                unit="ms"
+                trend={jitter?.trend || "stable"}
+              />
+              <MetricCard 
+                title="Current FPS" 
+                value={fps?.current || 0} 
+                unit="fps"
+                trend={fps?.trend || "stable"}
+              />
+              <MetricCard 
+                title="CPU Usage" 
+                value={system?.cpu.usage || 0} 
+                unit="%"
+                trend={system?.cpu.trend || "stable"}
+              />
+            </div>
+            
+            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+              <CardHeader>
+                <CardTitle>Recent Performance</CardTitle>
+                <CardDescription>Key metrics over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={ping?.history || []}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="time" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
+                      <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="network" className="space-y-4">
+            {/* Network metrics visualization */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ArrowUpDown className="h-5 w-5" />
-                    Status da Conexão Backend
-                  </CardTitle>
-                  <CardDescription>
-                    Verifica a conectividade com o backend
-                  </CardDescription>
+                  <CardTitle>Ping Over Time</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="mb-1 text-sm">Status atual:</p>
-                      <div className="flex items-center">
-                        {backendStatus.status === "connected" && (
-                          <Badge variant="cyberGreen">Conectado</Badge>
-                        )}
-                        {backendStatus.status === "disconnected" && (
-                          <Badge variant="destructive">Desconectado</Badge>
-                        )}
-                        {backendStatus.status === "error" && (
-                          <Badge variant="destructive">Erro</Badge>
-                        )}
-                        {backendStatus.status === "unknown" && (
-                          <Badge variant="outline">Desconhecido</Badge>
-                        )}
-                      </div>
-                    </div>
-                    {backendStatus.timestamp && (
-                      <div className="text-xs text-gray-500">
-                        Última verificação: {backendStatus.timestamp.toLocaleTimeString()}
-                      </div>
-                    )}
-                  </div>
-
-                  <Button 
-                    onClick={checkBackendStatus} 
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Verificar conexão
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Componente RedirectBlocker */}
-              <RedirectBlocker />
-            </div>
-          </TabsContent>
-
-          {/* Tab do CloudWatch */}
-          <TabsContent value="cloudwatch">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gauge className="h-5 w-5" />
-                    AWS CloudWatch
-                  </CardTitle>
-                  <CardDescription>
-                    Configuração e status do CloudWatch
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="mb-1 text-sm">Status do CloudWatch:</p>
-                      <div className="flex items-center">
-                        {isCloudWatchAvailable ? (
-                          <Badge variant="cyberGreen">Disponível</Badge>
-                        ) : (
-                          <Badge variant="destructive">Indisponível</Badge>
-                        )}
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={() => setShowCredentials(!showCredentials)} 
-                      variant="outline"
-                      size="sm"
-                    >
-                      {showCredentials ? "Ocultar credenciais" : "Configurar credenciais"}
-                    </Button>
-                  </div>
-
-                  {showCredentials && (
-                    <div className="space-y-3 pt-2 border-t">
-                      <div className="space-y-1">
-                        <Label htmlFor="access-key">AWS Access Key</Label>
-                        <Input
-                          id="access-key"
-                          value={awsAccessKey}
-                          onChange={(e) => setAwsAccessKey(e.target.value)}
-                          placeholder="AKIAXXXXXXXXXXXXXXXX"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="secret-key">AWS Secret Key</Label>
-                        <Input
-                          id="secret-key"
-                          type="password"
-                          value={awsSecretKey}
-                          onChange={(e) => setAwsSecretKey(e.target.value)}
-                          placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        />
-                      </div>
-                      <Button onClick={saveAwsCredentials}>Salvar credenciais</Button>
-                      <p className="text-xs text-gray-500 mt-1">
-                        As credenciais são salvas apenas localmente no seu navegador
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart className="h-5 w-5" />
-                    Métricas
-                  </CardTitle>
-                  <CardDescription>
-                    Publicar e visualizar métricas no CloudWatch
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <Label htmlFor="metric-name">Nome da métrica</Label>
-                      <Input
-                        id="metric-name"
-                        value={metricName}
-                        onChange={(e) => setMetricName(e.target.value)}
-                        placeholder="api_latency"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="metric-value">Valor</Label>
-                      <Input
-                        id="metric-value"
-                        value={metricValue}
-                        onChange={(e) => setMetricValue(e.target.value)}
-                        placeholder="123.45"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="metric-unit">Unidade</Label>
-                      <select
-                        id="metric-unit"
-                        value={metricUnit}
-                        onChange={(e) => setMetricUnit(e.target.value)}
-                        className="w-full p-2 border rounded"
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={ping?.history || []}
+                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                       >
-                        <option value="Count">Count</option>
-                        <option value="Milliseconds">Milliseconds</option>
-                        <option value="Percent">Percent</option>
-                        <option value="Bytes">Bytes</option>
-                        <option value="Bits">Bits</option>
-                        <option value="Seconds">Seconds</option>
-                      </select>
-                    </div>
-                    <Button 
-                      onClick={publishMetric} 
-                      disabled={!isCloudWatchAvailable || isLoading || !metricName || !metricValue}
-                      className="w-full"
-                    >
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Publicar métrica
-                    </Button>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <XAxis dataKey="time" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
+                        <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
-
-                  <Separator className="my-4" />
-
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Métricas recentes:</h3>
-                    <div className="space-y-2">
-                      {metrics.slice(-5).map((metric, index) => (
-                        <div 
-                          key={index} 
-                          className="text-xs p-2 bg-muted rounded flex justify-between items-center"
-                        >
-                          <span className="font-medium">{metric.name}</span>
-                          <span>
-                            {metric.value} {metric.unit}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+                <CardHeader>
+                  <CardTitle>Jitter Over Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={jitter?.history || []}
+                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <XAxis dataKey="time" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
+                        <Area type="monotone" dataKey="value" stroke="#f97316" fill="#f97316" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+              <CardHeader>
+                <CardTitle>Network Stability Analysis</CardTitle>
+                <CardDescription>Ping and jitter variance over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: "Min", ping: ping?.min || 0, jitter: jitter?.min || 0 },
+                        { name: "Avg", ping: ping?.average || 0, jitter: jitter?.average || 0 },
+                        { name: "Max", ping: ping?.max || 0, jitter: jitter?.max || 0 },
+                        { name: "Current", ping: ping?.current || 0, jitter: jitter?.current || 0 }
+                      ]}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis dataKey="name" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
+                      <Bar dataKey="ping" name="Ping (ms)" fill="#3b82f6" />
+                      <Bar dataKey="jitter" name="Jitter (ms)" fill="#f97316" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="system" className="space-y-4">
+            {/* System metrics visualization */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+                <CardHeader>
+                  <CardTitle>CPU Usage Over Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={system?.cpu.history || []}
+                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <XAxis dataKey="time" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
+                        <Area type="monotone" dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+                <CardHeader>
+                  <CardTitle>GPU Usage Over Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={system?.gpu.history || []}
+                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <XAxis dataKey="time" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
+                        <Area type="monotone" dataKey="value" stroke="#d946ef" fill="#d946ef" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
-
-          {/* Tab de diagnósticos */}
-          <TabsContent value="diagnostics">
-            <div className="grid grid-cols-1 gap-4">
-              <RedirectsDiagnostic />
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Info className="h-5 w-5" />
-                    Informações do Aplicativo
-                  </CardTitle>
-                  <CardDescription>
-                    Informações sobre o ambiente de execução
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="font-medium">Ambiente:</div>
-                    <div>{process.env.NODE_ENV || "development"}</div>
-                    
-                    <div className="font-medium">Modo Electron:</div>
-                    <div>{process.env.IS_ELECTRON === 'true' ? "Sim" : "Não"}</div>
-                    
-                    <div className="font-medium">URL Base da API:</div>
-                    <div className="break-all">{window.location.origin}</div>
-                    
-                    <div className="font-medium">User Agent:</div>
-                    <div className="break-all">{navigator.userAgent}</div>
+          
+          <TabsContent value="alerts" className="space-y-4">
+            {/* Alert thresholds and settings */}
+            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Alert Thresholds</CardTitle>
+                  <Button variant="outline" size="sm">
+                    <Settings size={16} className="mr-2" />
+                    Configure
+                  </Button>
+                </div>
+                <CardDescription>Current alert threshold configuration</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <AlertThresholdCard 
+                      title="Ping" 
+                      warningThreshold={`${ALERT_THRESHOLDS.ping.warning} ms`} 
+                      criticalThreshold={`${ALERT_THRESHOLDS.ping.critical} ms`} 
+                      currentValue={`${ping?.current || 0} ms`}
+                    />
+                    <AlertThresholdCard 
+                      title="Jitter" 
+                      warningThreshold={`${ALERT_THRESHOLDS.jitter.warning} ms`} 
+                      criticalThreshold={`${ALERT_THRESHOLDS.jitter.critical} ms`} 
+                      currentValue={`${jitter?.current || 0} ms`}
+                    />
+                    <AlertThresholdCard 
+                      title="FPS" 
+                      warningThreshold={`${ALERT_THRESHOLDS.fps.warning} fps`} 
+                      criticalThreshold={`${ALERT_THRESHOLDS.fps.critical} fps`} 
+                      currentValue={`${fps?.current || 0} fps`}
+                      isLowerBad={true}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <AlertThresholdCard 
+                      title="CPU Usage" 
+                      warningThreshold={`${ALERT_THRESHOLDS.cpu.warning}%`} 
+                      criticalThreshold={`${ALERT_THRESHOLDS.cpu.critical}%`} 
+                      currentValue={`${system?.cpu.usage.toFixed(1) || 0}%`}
+                    />
+                    <AlertThresholdCard 
+                      title="GPU Usage" 
+                      warningThreshold={`${ALERT_THRESHOLDS.gpu.warning}%`} 
+                      criticalThreshold={`${ALERT_THRESHOLDS.gpu.critical}%`} 
+                      currentValue={`${system?.gpu.usage.toFixed(1) || 0}%`}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+              <CardHeader>
+                <CardTitle>Recent Alerts</CardTitle>
+                <CardDescription>Alert history from the last 24 hours</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="border-t border-border/30">
+                  <div className="p-4 border-b border-border/30 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Badge className="bg-amber-500/20 text-amber-500 mr-3">Warning</Badge>
+                      <div>
+                        <p className="font-medium">High ping detected: 128ms</p>
+                        <p className="text-sm text-gray-400">Your ping is higher than recommended</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-gray-400 text-sm">
+                      <Clock size={14} className="mr-1" />
+                      <span>2 hours ago</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border-b border-border/30 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Badge className="bg-red-500/20 text-red-500 mr-3">Critical</Badge>
+                      <div>
+                        <p className="font-medium">CPU Usage: 92%</p>
+                        <p className="text-sm text-gray-400">CPU under heavy load</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-gray-400 text-sm">
+                      <Clock size={14} className="mr-1" />
+                      <span>4 hours ago</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border-b border-border/30 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Badge className="bg-amber-500/20 text-amber-500 mr-3">Warning</Badge>
+                      <div>
+                        <p className="font-medium">FPS Drop: 28 FPS</p>
+                        <p className="text-sm text-gray-400">Your game is running below recommended FPS</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-gray-400 text-sm">
+                      <Clock size={14} className="mr-1" />
+                      <span>6 hours ago</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
+        
+        <div className="mt-6 flex justify-end">
+          <Button variant="outline" size="sm">
+            <Download size={16} className="mr-2" />
+            Export Monitoring Data
+          </Button>
+        </div>
       </div>
     </Layout>
+  );
+};
+
+// Helper component for metric cards
+const MetricCard = ({ title, value, unit, trend }: { 
+  title: string, 
+  value: number, 
+  unit: string,
+  trend: "up" | "down" | "stable"
+}) => {
+  return (
+    <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+      <CardContent className="p-4">
+        <div className="text-sm text-gray-400">{title}</div>
+        <div className="text-2xl font-bold mt-1 flex items-center">
+          {value} <span className="text-sm ml-1">{unit}</span>
+          
+          {trend === "up" && (
+            <span className="text-red-400 text-sm ml-2">↑</span>
+          )}
+          {trend === "down" && (
+            <span className="text-green-400 text-sm ml-2">↓</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Helper component for alert threshold cards
+const AlertThresholdCard = ({ 
+  title, 
+  warningThreshold, 
+  criticalThreshold,
+  currentValue,
+  isLowerBad = false // For metrics like FPS where lower is bad
+}: { 
+  title: string,
+  warningThreshold: string,
+  criticalThreshold: string,
+  currentValue: string,
+  isLowerBad?: boolean
+}) => {
+  // Extract numeric value to determine status
+  const numericValue = parseFloat(currentValue.split(' ')[0]);
+  const warningValue = parseFloat(warningThreshold.split(' ')[0]);
+  const criticalValue = parseFloat(criticalThreshold.split(' ')[0]);
+  
+  let status: "normal" | "warning" | "critical" = "normal";
+  
+  if (isLowerBad) {
+    // For metrics like FPS where lower values are bad
+    if (numericValue <= criticalValue) {
+      status = "critical";
+    } else if (numericValue <= warningValue) {
+      status = "warning";
+    }
+  } else {
+    // For metrics like ping where higher values are bad
+    if (numericValue >= criticalValue) {
+      status = "critical";
+    } else if (numericValue >= warningValue) {
+      status = "warning";
+    }
+  }
+
+  return (
+    <Card className={`
+      border 
+      ${status === "normal" ? "border-cyber-blue/30" : ""}
+      ${status === "warning" ? "border-amber-500/50 bg-amber-900/10" : ""}
+      ${status === "critical" ? "border-red-500/50 bg-red-900/10" : ""}
+    `}>
+      <CardContent className="p-3">
+        <div className="text-sm font-medium mb-2">{title}</div>
+        
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <div className="text-gray-400">Warning</div>
+            <div className="font-mono">{warningThreshold}</div>
+          </div>
+          <div>
+            <div className="text-gray-400">Critical</div>
+            <div className="font-mono">{criticalThreshold}</div>
+          </div>
+        </div>
+        
+        <div className="mt-3 pt-3 border-t border-border/30">
+          <div className="text-gray-400 text-xs">Current Value</div>
+          <div className={`
+            font-bold text-lg
+            ${status === "normal" ? "text-green-400" : ""}
+            ${status === "warning" ? "text-amber-400" : ""}
+            ${status === "critical" ? "text-red-400" : ""}
+          `}>
+            {currentValue}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

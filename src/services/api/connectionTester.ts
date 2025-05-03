@@ -1,5 +1,5 @@
 
-import { getApiBaseUrl, sanitizeApiUrl } from "../../utils/url";
+import { getApiBaseUrl } from "../../utils/url";
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -8,56 +8,34 @@ const isDev = process.env.NODE_ENV === 'development';
  */
 export const testBackendConnection = async () => {
   try {
-    // Always use relative URLs for API calls
+    // Always use relative URLs for API calls - no hardcoded domains
     const url = `/health`;
-    const sanitizedUrl = sanitizeApiUrl(url);
     
     if (isDev) {
-      console.log("Testando conexão com:", sanitizedUrl);
-    }
-    
-    // Check if the URL is absolute (contains http:// or https://)
-    if (sanitizedUrl.startsWith('http://') || sanitizedUrl.startsWith('https://')) {
-      console.warn('⚠️ URL absoluto detectado no teste de conexão:', sanitizedUrl);
+      console.log("Testing connection with:", url);
     }
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
     
-    // CHANGED: Use GET instead of HEAD (405 Method Not Allowed errors)
-    const response = await fetch(sanitizedUrl, { 
+    // Use GET with proper headers to prevent redirects
+    const response = await fetch(url, { 
       mode: 'cors',
-      method: 'GET', // Using GET instead of HEAD
+      method: 'GET',
       headers: {
         "Accept": "application/json",
         "X-No-Redirect": "1", // Prevent redirects
         "Cache-Control": "no-cache", // Prevent caching
         "X-Development-Mode": isDev ? "1" : "0",
-        // Anti-redirect headers
         "X-Max-Redirects": "0",
         "X-Requested-With": "XMLHttpRequest"
       },
       signal: controller.signal,
-      cache: 'no-store'
+      cache: 'no-store',
+      redirect: 'error' // Explicitly error on redirects instead of following
     });
     
     clearTimeout(timeoutId);
-    
-    // Enhanced redirect verification
-    if (response.url && response.url !== sanitizedUrl) {
-      const originalUrl = new URL(sanitizedUrl, window.location.origin);
-      const redirectedUrl = new URL(response.url, window.location.origin);
-      
-      console.log(`⚠️ URL redirecionada: ${sanitizedUrl} -> ${response.url}`);
-      
-      if (originalUrl.host !== redirectedUrl.host || 
-          redirectedUrl.href.includes('gamepathai.com')) {
-        console.error('⚠️ Redirecionamento detectado no teste de conexão:', {
-          original: sanitizedUrl,
-          redirected: response.url
-        });
-      }
-    }
     
     if (isDev) {
       console.log(`Backend connection ${response.ok ? 'successful' : 'failed'} with status: ${response.status}`);
@@ -80,32 +58,27 @@ export const testBackendConnection = async () => {
 export const testAWSConnection = async () => {
   try {
     // Use relative URL for testing AWS connection
-    const awsHealthUrl = '/health';
+    const healthUrl = '/health';
     
-    console.log("Testando conexão AWS com:", awsHealthUrl);
+    console.log("Testing AWS connection with:", healthUrl);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
-    // CHANGED: Use GET instead of HEAD
-    const response = await fetch(awsHealthUrl, { 
+    const response = await fetch(healthUrl, { 
       mode: 'cors',
-      method: 'GET', // Using GET instead of HEAD
+      method: 'GET',
       headers: {
         "Accept": "application/json",
         "X-No-Redirect": "1",
-        "X-Max-Redirects": "0"
+        "X-Max-Redirects": "0",
+        "X-Requested-With": "XMLHttpRequest"
       },
-      signal: controller.signal
+      signal: controller.signal,
+      redirect: 'error' // Explicitly error on redirects
     });
     
     clearTimeout(timeoutId);
-    
-    if (response.type === 'opaqueredirect') {
-      console.log("⚠️ URL AWS redirecionada:", awsHealthUrl, "->", "Redireção detectada");
-      return false;
-    }
-    
     return response.ok;
   } catch (error) {
     console.error("AWS connection test failed:", error);

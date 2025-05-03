@@ -1,4 +1,3 @@
-
 /**
  * Content Security Policy (CSP) helper
  * 
@@ -29,9 +28,9 @@ const CSP_SOURCES = {
 };
 
 /**
- * Generates a CSP policy string for HTML meta tag
+ * Generates a CSP policy string for HTTP headers
  */
-export const generateCSPMeta = (): string => {
+export const generateCSPHeader = (): string => {
   return [
     `default-src ${CSP_SOURCES.DEFAULT.join(' ')};`,
     `style-src ${CSP_SOURCES.STYLE.join(' ')};`,
@@ -47,12 +46,13 @@ export const generateCSPMeta = (): string => {
 };
 
 /**
- * Helper function to add CSP meta tag to document head
+ * Add CSP meta tag - this should only be used as a fallback
+ * The main CSP should be delivered via HTTP headers
  */
 export const addCSPMetaTag = (): void => {
   if (typeof document === 'undefined') return;
   
-  console.log('🔒 Adding strict CSP meta tag');
+  console.log('🔒 Adding fallback CSP meta tag');
   
   // Remove existing CSP meta tag if it exists
   const existingCSPMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
@@ -63,15 +63,15 @@ export const addCSPMetaTag = (): void => {
   // Create and add new CSP meta tag
   const metaTag = document.createElement('meta');
   metaTag.httpEquiv = 'Content-Security-Policy';
-  metaTag.content = generateCSPMeta();
+  metaTag.content = generateCSPHeader();
   document.head.appendChild(metaTag);
   
-  console.log('✅ CSP meta tag added successfully');
+  console.log('✅ CSP meta tag added successfully (Note: frame-ancestors directive is ignored in meta tags)');
 };
 
 /**
- * Removes any security software injected scripts
- * that might be causing redirection issues
+ * Modifies the removeInjectedScripts function to be more selective
+ * and avoid removing legitimate Stripe scripts
  */
 export const removeInjectedScripts = (): void => {
   if (typeof document === 'undefined') return;
@@ -83,7 +83,8 @@ export const removeInjectedScripts = (): void => {
   let removedScripts = 0;
   scripts.forEach(script => {
     const src = script.getAttribute('src') || '';
-    if (src.includes('kaspersky') || 
+    // Keep Stripe scripts but block known problematic ones
+    if ((src.includes('kaspersky') || 
         src.includes('scr.kaspersky-labs.com') ||
         src.includes('kis.v2.scr') ||
         src.includes('avast') ||
@@ -92,7 +93,8 @@ export const removeInjectedScripts = (): void => {
         src.includes('norton') ||
         src.includes('webroot') ||
         src.includes('redirect') ||
-        src.includes('eset')) {
+        src.includes('eset')) && 
+        !src.includes('stripe')) {
       console.log('🚫 Removing potentially problematic script:', src);
       script.remove();
       removedScripts++;
@@ -119,12 +121,14 @@ export const removeInjectedScripts = (): void => {
     }
   });
   
-  // Check for suspicious iframes
+  // Check for suspicious iframes, but keep Stripe iframes
   const iframes = document.querySelectorAll('iframe');
   let removedIframes = 0;
   iframes.forEach(iframe => {
     const src = iframe.getAttribute('src') || '';
-    if (src.includes('gamepathai.com') || src.includes('redirect')) {
+    if ((src.includes('gamepathai.com') || 
+        src.includes('redirect')) && 
+        !src.includes('stripe')) {
       console.log('🚫 Removing suspicious iframe:', src);
       iframe.remove();
       removedIframes++;
@@ -135,8 +139,7 @@ export const removeInjectedScripts = (): void => {
 };
 
 /**
- * NEW: Helper function that can be called periodically to clean injected elements
- * This can be called on intervals to keep the page clean
+ * Helper function that can be called periodically to clean injected elements
  */
 export const periodicCleanup = (): void => {
   removeInjectedScripts();

@@ -4,6 +4,22 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+// Generate CSP Header for Vite server
+const generateCSP = () => {
+  return [
+    `default-src 'self';`,
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;`,
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com;`,
+    `font-src 'self' https://fonts.gstatic.com;`,
+    `img-src 'self' data: https://*.stripe.com https://images.unsplash.com blob:;`,
+    `connect-src 'self' https://*.stripe.com http://localhost:* https://localhost:* https://gamepathai-dev-lb-1728469102.us-east-1.elb.amazonaws.com wss://*.stripe.com;`,
+    `frame-src 'self' https://*.stripe.com;`,
+    `form-action 'self';`,
+    `base-uri 'self';`,
+    `frame-ancestors 'self';`,
+  ].join(' ');
+};
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -34,6 +50,13 @@ export default defineConfig(({ mode }) => ({
       '*.lovableproject.com',
       '*.lovable.app'
     ],
+    // Add CSP headers via HTTP headers rather than meta tags
+    headers: {
+      'Content-Security-Policy': generateCSP(),
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY', // Additional protection against framing
+      'X-XSS-Protection': '1; mode=block'
+    },
     proxy: {
       // Enhanced proxy configuration to prevent redirects
       '/': {

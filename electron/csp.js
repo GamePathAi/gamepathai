@@ -52,10 +52,14 @@ function setupCsp() {
     });
   });
   
-  // Log and attempt to block any redirects
+  // Log and block any redirects
   session.defaultSession.webRequest.onBeforeRedirect((details, callback) => {
     console.log('⛔ REDIRECT DETECTED:', details.redirectURL, 'from:', details.url);
-    // We can't cancel here, but we log for debugging
+    
+    // If redirect is to gamepathai.com, cancel it in the onBeforeRequest handler above
+    if (details.redirectURL && details.redirectURL.includes('gamepathai.com')) {
+      console.log('⚠️ Redirect to gamepathai.com detected and will be blocked');
+    }
   });
 }
 

@@ -1,41 +1,11 @@
+
 import { HardwareData } from "@/types/metrics";
-import { communityKnowledgeService, KnowledgeEntry } from "./communityKnowledge";
-import { neuralPredictionEngine } from "./neuralPrediction";
+import { communityKnowledgeService, KnowledgeEntry } from "../communityKnowledge";
+import { neuralPredictionEngine } from "../neuralPrediction";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "sonner";
-
-// Define the type for adaptive override conditions
-interface AdaptiveCondition {
-  metric: string;
-  operator: '>' | '<' | '>=' | '<=' | '=';
-  value: number;
-}
-
-// Define the type for adaptive overrides
-interface AdaptiveOverride {
-  condition: AdaptiveCondition;
-  setting: string;
-  value: number;
-}
-
-export interface AdaptiveProfile {
-  id: string;
-  name: string;
-  gameId: string;
-  hardwareFingerprint: string;
-  baseSettings: Record<string, any>;
-  adaptiveOverrides: AdaptiveOverride[];
-  performance: {
-    baseFps: number;
-    targetFps: number;
-    minFps: number;
-  };
-  createdAt: number;
-  updatedAt: number;
-  isActive: boolean;
-  autoAdjust: boolean;
-  knowledgeSources: string[];
-}
+import { AdaptiveProfile, AdaptiveOverride } from "./types";
+import { getGameDisplayName, generateHardwareFingerprint } from "./utils";
 
 /**
  * Adaptive Profiles Service
@@ -220,7 +190,7 @@ class AdaptiveProfilesService {
       // Create the profile
       const profile: AdaptiveProfile = {
         id: uuidv4(),
-        name: `${this.getGameDisplayName(gameId)} - Optimized`,
+        name: `${getGameDisplayName(gameId)} - Optimized`,
         gameId,
         hardwareFingerprint: bestEntry.hardwareFingerprint,
         baseSettings: { ...bestEntry.settingsConfig },
@@ -521,14 +491,14 @@ class AdaptiveProfilesService {
       }
       
       // Generate a profile name
-      const profileName = `${this.getGameDisplayName(gameId)} - AI Optimized`;
+      const profileName = `${getGameDisplayName(gameId)} - AI Optimized`;
       
       // Create the profile
       const profileId = this.createProfile(
         gameId,
         profileName,
         blendedSettings,
-        this.generateHardwareFingerprint(hardwareData),
+        generateHardwareFingerprint(hardwareData),
         {
           baseFps: knowledgeEntries.length > 0 
             ? knowledgeEntries[0].performance.fps 
@@ -584,32 +554,6 @@ class AdaptiveProfilesService {
       });
       return null;
     }
-  }
-  
-  /**
-   * Helper to get a display name for a game
-   */
-  private getGameDisplayName(gameId: string): string {
-    // This would ideally look up a proper game name from a game service
-    // For now, just convert the ID to a nicer format
-    const gameNames: Record<string, string> = {
-      "cyberpunk2077": "Cyberpunk 2077",
-      "valorant": "Valorant",
-      "fortnite": "Fortnite",
-      "csgo2": "CS2",
-      "gta5": "Grand Theft Auto V"
-    };
-    
-    return gameNames[gameId] || gameId.charAt(0).toUpperCase() + gameId.slice(1);
-  }
-  
-  /**
-   * Generate a hardware fingerprint from hardware data
-   */
-  private generateHardwareFingerprint(hardwareData: HardwareData): string {
-    // In a real implementation, this would extract GPU model, CPU model, etc.
-    // For now, we'll use a simplified version
-    return `cpu-${Math.round(hardwareData.cpu.usage)}-gpu-${hardwareData.gpu?.usage || 0}-mem-${hardwareData.memory.total}`;
   }
 }
 

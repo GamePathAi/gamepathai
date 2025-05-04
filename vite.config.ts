@@ -48,7 +48,8 @@ export default defineConfig(({ mode }) => ({
       'localhost', 
       '127.0.0.1',
       '*.lovableproject.com',
-      '*.lovable.app'
+      '*.lovable.app',
+      'db6489aa-54d3-41db-9507-31b855d86e89.lovableproject.com' // Added specific Lovable project domain
     ],
     // Add CSP headers via HTTP headers rather than meta tags
     headers: {

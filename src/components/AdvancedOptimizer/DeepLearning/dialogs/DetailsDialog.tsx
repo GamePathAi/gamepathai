@@ -99,6 +99,7 @@ export const DetailsDialog: React.FC<DetailsDialogProps> = ({ open, onOpenChange
                       color: "#10b981", 
                       strokeWidth: 2 
                     }]}
+                    xAxisDataKey="name"
                     tooltipFormatter={(value) => [`${value}%`, "Learning"]}
                   />
                 </div>

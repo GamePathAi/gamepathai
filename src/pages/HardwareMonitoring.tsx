@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import HardwareMonitor from "@/components/hardware/HardwareMonitor";
 import { useHardwareMonitoring } from "@/hooks/useHardwareMonitoring";
-import { Cpu, Memory, Thermometer, Activity, ChartBar, RefreshCw, Download, Settings } from "lucide-react";
+import { Cpu, Thermometer, Activity, ChartBar, RefreshCw, Download, Settings } from "lucide-react";
+import { MemoryIcon } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { LineChartComponent } from "@/components/charts/LineChartComponent";
 import { hardwareMonitoringService } from "@/services/hardware/hardwareMonitoringService";
@@ -276,7 +277,7 @@ const HardwareMonitoring: React.FC = () => {
                         <div>
                           <div className="flex justify-between text-xs mb-1">
                             <div className="flex items-center">
-                              <Memory size={12} className="mr-1" /> Memory Usage
+                              <MemoryIcon size={12} className="mr-1" /> Memory Usage
                             </div>
                             <div>90%</div>
                           </div>

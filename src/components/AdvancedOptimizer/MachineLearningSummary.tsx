@@ -115,6 +115,7 @@ export const MachineLearningSummary: React.FC = () => {
                 gradientId="learningGradient"
                 tooltipFormatter={(value) => [`${value}%`, 'Learning Progress']}
                 height={180}
+                xAxisDataKey="name"
               />
             </div>
           </div>
@@ -132,6 +133,7 @@ export const MachineLearningSummary: React.FC = () => {
                   height={180}
                   showLegend={true}
                   dot={{ r: 4 }}
+                  xAxisDataKey="name"
                 />
               </div>
             </div>

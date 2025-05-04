@@ -10,7 +10,7 @@ import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { I18nextProvider } from "react-i18next";
-import i18n from "./i18n";
+import i18n from "./lib/i18n";
 
 function App() {
   return (

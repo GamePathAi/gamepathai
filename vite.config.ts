@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
     'process.env.NODE_ENV': JSON.stringify(mode),
   },
   server: {
-    port: 8080,
+    // Remove the duplicate port here, since it's already in serverConfig
     ...serverConfig
   }
 }));

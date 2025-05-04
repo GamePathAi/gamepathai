@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Download, Monitor, Apple, Linux } from "lucide-react";
+import { Download, Monitor, Apple, Terminal } from "lucide-react";
 import { toast } from "sonner";
 
 interface DownloadInfo {
@@ -67,7 +67,7 @@ const DownloadSection: React.FC = () => {
     switch(os) {
       case 'windows': return <Monitor className="mr-2" />;
       case 'mac': return <Apple className="mr-2" />;
-      case 'linux': return <Linux className="mr-2" />;
+      case 'linux': return <Terminal className="mr-2" />; // Changed from Linux to Terminal icon
       default: return <Download className="mr-2" />;
     }
   };

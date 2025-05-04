@@ -124,7 +124,7 @@ const HardwareMonitor: React.FC<HardwareMonitorProps> = ({
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-md font-tech text-white flex items-center gap-2">
-                  <Memory className="h-4 w-4 text-cyber-blue" />
+                  <MemoryStick className="h-4 w-4 text-cyber-blue" />
                   {t("hardware.ram")}
                 </CardTitle>
                 {data && (

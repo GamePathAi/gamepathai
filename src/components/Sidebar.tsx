@@ -1,129 +1,299 @@
 
-import React from "react";
-import { Home, Activity, Cpu, Network, Gauge, Zap, Lock, ChevronRight, Brain, Settings } from "lucide-react";
-import { useLocation, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import GamePathLogo from "./GamePathLogo";
+import { useTranslation } from "react-i18next";
+import {
+  Home,
+  Network,
+  Settings,
+  LayoutDashboard,
+  Cpu,
+  Activity,
+  Server,
+  Gamepad2,
+  Zap,
+  Shield,
+  CreditCard,
+  Wrench,
+  LogOut,
+  ChevronRight,
+  ChevronDown,
+  Monitor
+} from "lucide-react";
 
-interface SidebarItemProps {
-  icon: React.ElementType;
-  label: string;
-  to: string;
-  isPremium?: boolean;
-}
+const Sidebar = () => {
+  const { t } = useTranslation();
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    optimizations: false
+  });
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, to, isPremium }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-  
-  return (
-    <Link to={to} className={`
-      flex items-center px-4 py-3 cursor-pointer transition-all duration-300 group
-      ${isActive ? "bg-cyber-purple/20 border-l-2 border-cyber-purple" : "border-l-2 border-transparent hover:border-cyber-blue hover:bg-cyber-blue/10"}
-    `}>
-      <Icon size={20} className={`mr-3 ${isActive ? "text-cyber-purple" : "text-cyber-blue group-hover:text-cyber-purple"}`} />
-      <span className="font-tech text-sm flex-1">{label}</span>
-      {isPremium && (
-        <span className="text-xs bg-cyber-orange/20 text-cyber-orange px-1.5 py-0.5 rounded font-tech border border-cyber-orange/30">
-          PRO
-        </span>
-      )}
-      <ChevronRight size={16} className={`ml-2 transition-transform ${isActive ? "transform rotate-90 text-cyber-purple" : "text-gray-500"}`} />
-    </Link>
-  );
-};
+  const toggleMenu = (menu: string) => {
+    setOpenMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
+  };
 
-const Sidebar: React.FC = () => {
-  // Define navigation items once - no duplication
-  const navItems = [
-    { icon: Home, label: "Dashboard", path: "/dashboard" },
-    { icon: Activity, label: "Network Metrics", path: "/network-metrics" },
-    { icon: Cpu, label: "System Optimization", path: "/system-optimization" },
-    { icon: Network, label: "Route Optimizer", path: "/route-optimizer" },
-    { icon: Gauge, label: "Performance", path: "/performance" },
-    { icon: Settings, label: "Settings", path: "/settings" },
-    // Premium items 
-    { icon: Brain, label: "Advanced Optimizer", path: "/advanced-optimizer", isPremium: true },
-    { icon: Zap, label: "Power Manager", path: "/power-manager", isPremium: true },
-    { icon: Lock, label: "VPN Integration", path: "/vpn-integration", isPremium: true },
-  ];
+  const isSubmenuActive = (paths: string[]) => {
+    return paths.some(path => window.location.pathname === path);
+  };
 
   return (
-    <div className="w-64 bg-cyber-black border-r border-cyber-purple/30 flex-shrink-0 h-full overflow-y-auto hidden md:block">
-      <div className="p-4">
-        {/* Connection Status Panel */}
-        <div className="mb-3 bg-cyber-darkblue/80 rounded-md p-3 border border-cyber-blue/20 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-400 font-tech">CONNECTION STATUS</span>
-            <span className="flex items-center text-green-400 font-tech text-xs">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
-              ONLINE
-            </span>
-          </div>
-          <div className="mb-2">
-            <div className="text-xs text-gray-400 font-tech flex justify-between mb-1">
-              <span>PING</span>
-              <span className="text-cyber-blue">24ms</span>
-            </div>
-            <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-cyber-blue to-cyber-purple w-1/4 relative overflow-hidden">
-                <div className="absolute inset-0 bg-white/20 animate-data-flow"></div>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-400 font-tech flex justify-between mb-1">
-              <span>PACKET LOSS</span>
-              <span className="text-green-400">0%</span>
-            </div>
-            <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-green-400 to-cyber-blue w-full relative overflow-hidden">
-                <div className="absolute inset-0 bg-white/20 animate-data-flow"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Combined Navigation with Regular and Premium Items */}
-        <div className="space-y-1 mb-3">
-          {/* Regular items */}
-          {navItems.filter(item => !item.isPremium).map((item, index) => (
-            <SidebarItem 
-              key={index}
-              icon={item.icon} 
-              label={item.label} 
-              to={item.path}
-            />
-          ))}
-        </div>
-        
-        {/* Premium Features Section */}
-        <div className="mb-3">
-          <div className="text-xs text-gray-400 font-tech mb-2 px-4">PREMIUM FEATURES</div>
-          <div className="space-y-1">
-            {navItems.filter(item => item.isPremium).map((item, index) => (
-              <SidebarItem 
-                key={index}
-                icon={item.icon} 
-                label={item.label} 
-                to={item.path}
-                isPremium={item.isPremium} 
-              />
-            ))}
-          </div>
-        </div>
-        
-        {/* Upgrade CTA */}
-        <div className="p-4 bg-gradient-to-r from-cyber-purple/20 to-cyber-blue/20 rounded-md border border-cyber-purple/30 relative overflow-hidden upgrade-pro-btn">
-          <div className="mb-2 font-tech font-semibold text-cyber-blue">Upgrade to Pro</div>
-          <p className="text-xs text-gray-300 mb-3">Get access to premium features and advanced optimizations</p>
-          <Link to="/pricing" className="block">
-            <button className="cyber-btn text-xs py-1 w-full relative">
-              UPGRADE
-            </button>
-          </Link>
-          
-          <div className="scan-line"></div>
-        </div>
+    <div className="w-64 h-screen bg-cyber-darkblue border-r border-cyber-blue/30 flex flex-col">
+      <div className="p-4 border-b border-cyber-blue/30">
+        <GamePathLogo className="h-8 w-auto" />
       </div>
+
+      <nav className="flex-1 p-4 overflow-y-auto text-white text-sm">
+        <ul className="space-y-1">
+          {/* Dashboard */}
+          <li>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center px-3 py-2 rounded-md transition-colors",
+                  isActive
+                    ? "bg-cyber-blue/20 text-cyber-blue"
+                    : "hover:bg-cyber-blue/10"
+                )
+              }
+            >
+              <LayoutDashboard size={18} className="mr-2" />
+              {t("navigation.dashboard")}
+            </NavLink>
+          </li>
+
+          {/* Network Metrics */}
+          <li>
+            <NavLink
+              to="/network-metrics"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center px-3 py-2 rounded-md transition-colors",
+                  isActive
+                    ? "bg-cyber-blue/20 text-cyber-blue"
+                    : "hover:bg-cyber-blue/10"
+                )
+              }
+            >
+              <Network size={18} className="mr-2" />
+              {t("navigation.networkMetrics")}
+            </NavLink>
+          </li>
+
+          {/* Monitoring Dashboard */}
+          <li>
+            <NavLink
+              to="/monitoring-dashboard"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center px-3 py-2 rounded-md transition-colors",
+                  isActive
+                    ? "bg-cyber-blue/20 text-cyber-blue"
+                    : "hover:bg-cyber-blue/10"
+                )
+              }
+            >
+              <Monitor size={18} className="mr-2" />
+              {t("monitoring.title")}
+            </NavLink>
+          </li>
+
+          {/* Performance */}
+          <li>
+            <NavLink
+              to="/performance"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center px-3 py-2 rounded-md transition-colors",
+                  isActive
+                    ? "bg-cyber-blue/20 text-cyber-blue"
+                    : "hover:bg-cyber-blue/10"
+                )
+              }
+            >
+              <Activity size={18} className="mr-2" />
+              {t("navigation.performance")}
+            </NavLink>
+          </li>
+
+          {/* Optimizations Dropdown */}
+          <li>
+            <button
+              onClick={() => toggleMenu("optimizations")}
+              className={cn(
+                "flex items-center w-full px-3 py-2 rounded-md transition-colors",
+                isSubmenuActive(["/system-optimization", "/route-optimizer", "/advanced-optimizer", "/power-manager"]) 
+                  ? "bg-cyber-blue/20 text-cyber-blue"
+                  : "hover:bg-cyber-blue/10"
+              )}
+            >
+              <Zap size={18} className="mr-2" />
+              <span className="flex-1 text-left">{t("navigation.optimizations")}</span>
+              {openMenus.optimizations ? 
+                <ChevronDown size={16} /> : 
+                <ChevronRight size={16} />
+              }
+            </button>
+
+            {openMenus.optimizations && (
+              <ul className="pl-6 mt-1 space-y-1">
+                <li>
+                  <NavLink
+                    to="/system-optimization"
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center px-3 py-2 rounded-md transition-colors",
+                        isActive
+                          ? "bg-cyber-blue/20 text-cyber-blue"
+                          : "hover:bg-cyber-blue/10"
+                      )
+                    }
+                  >
+                    <Cpu size={16} className="mr-2" />
+                    {t("navigation.systemOptimization")}
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/route-optimizer"
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center px-3 py-2 rounded-md transition-colors",
+                        isActive
+                          ? "bg-cyber-blue/20 text-cyber-blue"
+                          : "hover:bg-cyber-blue/10"
+                      )
+                    }
+                  >
+                    <Server size={16} className="mr-2" />
+                    {t("navigation.routeOptimizer")}
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/advanced-optimizer"
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center px-3 py-2 rounded-md transition-colors",
+                        isActive
+                          ? "bg-cyber-blue/20 text-cyber-blue"
+                          : "hover:bg-cyber-blue/10"
+                      )
+                    }
+                  >
+                    <Wrench size={16} className="mr-2" />
+                    {t("navigation.advancedOptimizer")}
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    to="/power-manager"
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center px-3 py-2 rounded-md transition-colors",
+                        isActive
+                          ? "bg-cyber-blue/20 text-cyber-blue"
+                          : "hover:bg-cyber-blue/10"
+                      )
+                    }
+                  >
+                    <Zap size={16} className="mr-2" />
+                    {t("navigation.powerManager")}
+                  </NavLink>
+                </li>
+              </ul>
+            )}
+          </li>
+          
+          {/* Games */}
+          <li>
+            <NavLink
+              to="/games"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center px-3 py-2 rounded-md transition-colors",
+                  isActive
+                    ? "bg-cyber-blue/20 text-cyber-blue"
+                    : "hover:bg-cyber-blue/10"
+                )
+              }
+            >
+              <Gamepad2 size={18} className="mr-2" />
+              {t("navigation.games")}
+            </NavLink>
+          </li>
+
+          {/* VPN Integration */}
+          <li>
+            <NavLink
+              to="/vpn-integration"
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center px-3 py-2 rounded-md transition-colors",
+                  isActive
+                    ? "bg-cyber-blue/20 text-cyber-blue"
+                    : "hover:bg-cyber-blue/10"
+                )
+              }
+            >
+              <Shield size={18} className="mr-2" />
+              {t("navigation.vpnIntegration")}
+            </NavLink>
+          </li>
+        </ul>
+
+        <div className="mt-8 border-t border-cyber-blue/30 pt-4">
+          <ul className="space-y-1">
+            {/* Subscription */}
+            <li>
+              <NavLink
+                to="/subscription"
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center px-3 py-2 rounded-md transition-colors",
+                    isActive
+                      ? "bg-cyber-blue/20 text-cyber-blue"
+                      : "hover:bg-cyber-blue/10"
+                  )
+                }
+              >
+                <CreditCard size={18} className="mr-2" />
+                {t("navigation.subscription")}
+              </NavLink>
+            </li>
+
+            {/* Settings */}
+            <li>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center px-3 py-2 rounded-md transition-colors",
+                    isActive
+                      ? "bg-cyber-blue/20 text-cyber-blue"
+                      : "hover:bg-cyber-blue/10"
+                  )
+                }
+              >
+                <Settings size={18} className="mr-2" />
+                {t("navigation.settings")}
+              </NavLink>
+            </li>
+
+            {/* Logout */}
+            <li>
+              <NavLink
+                to="/login"
+                className="flex items-center px-3 py-2 rounded-md transition-colors hover:bg-cyber-red/20 text-cyber-red"
+              >
+                <LogOut size={18} className="mr-2" />
+                {t("navigation.logout")}
+              </NavLink>
+            </li>
+          </ul>
+        </div>
+      </nav>
     </div>
   );
 };

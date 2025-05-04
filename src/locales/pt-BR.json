@@ -1,27 +1,83 @@
 
 {
-  "header": {
-    "appName": "GamePath IA",
-    "features": "Recursos",
-    "technology": "Tecnologia", 
-    "pricing": "Preços",
-    "login": "Entrar",
-    "getStarted": "Começar"
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "more": "Mais",
+    "less": "Menos"
   },
-  "technology": {
-    "title": "Tecnologia GamePath IA",
-    "subtitle": "A tecnologia avançada que impulsiona sua experiência de otimização de jogos",
-    "adaptiveRouting": {
-      "title": "Roteamento Adaptativo",
-      "description": "Nossos algoritmos proprietários analisam as condições da rede em tempo real para encontrar o caminho ideal para seus dados de jogo."
-    },
-    "performanceAI": {
-      "title": "IA de Desempenho",
-      "description": "Sistemas de aprendizado de máquina que se adaptam à configuração do seu hardware e padrões de uso para um desempenho ideal."
-    },
-    "globalNetwork": {
-      "title": "Rede Global",
-      "description": "Acesso a rotas otimizadas em nossa infraestrutura de servidores mundial para jogos com baixa latência em qualquer lugar."
-    }
+  "auth": {
+    "signIn": "Entrar",
+    "signUp": "Cadastrar",
+    "signOut": "Sair",
+    "forgotPassword": "Esqueceu a senha?",
+    "resetPassword": "Redefinir senha",
+    "email": "Email",
+    "password": "Senha",
+    "confirmPassword": "Confirmar senha",
+    "name": "Nome",
+    "username": "Usuário",
+    "emailRequired": "Email é obrigatório",
+    "passwordRequired": "Senha é obrigatória",
+    "passwordMismatch": "As senhas não coincidem"
+  },
+  "permissions": {
+    "title": "Gerenciamento de Permissões",
+    "description": "Controle quais recursos o GamePath AI pode acessar para otimizar sua experiência de jogo.",
+    "grant": "Conceder Permissão",
+    "revoke": "Revogar Permissão",
+    "granted": "Permissão Concedida",
+    "notGranted": "Permissão Não Concedida",
+    "toggleError": "Erro ao alterar permissão",
+    "tryAgain": "Por favor, tente novamente",
+    "securityNote": "Proteção de Privacidade",
+    "securityDescription": "As permissões são armazenadas localmente e expiram após 30 dias. Você pode revogá-las a qualquer momento."
+  },
+  "hardware": {
+    "monitoring": "Monitoramento de Hardware",
+    "usage": "Uso",
+    "temperature": "Temperatura",
+    "cpu": "CPU",
+    "gpu": "GPU",
+    "ram": "Memória RAM",
+    "disk": "Disco",
+    "network": "Rede",
+    "fps": "FPS"
+  },
+  "network": {
+    "ping": "Ping",
+    "jitter": "Jitter",
+    "packetLoss": "Perda de Pacotes",
+    "download": "Download",
+    "upload": "Upload",
+    "latency": "Latência",
+    "connection": "Conexão",
+    "status": "Status",
+    "optimizer": "Otimizador de Rede",
+    "optimize": "Otimizar Conexão"
+  },
+  "settings": {
+    "title": "Configurações",
+    "general": "Geral",
+    "appearance": "Aparência",
+    "language": "Idioma",
+    "notifications": "Notificações",
+    "privacy": "Privacidade",
+    "security": "Segurança",
+    "advanced": "Avançado",
+    "reset": "Redefinir",
+    "resetConfirm": "Tem certeza que deseja redefinir todas as configurações?",
+    "resetSuccess": "Configurações redefinidas com sucesso",
+    "saveSuccess": "Configurações salvas com sucesso",
+    "saveError": "Erro ao salvar configurações"
   }
 }

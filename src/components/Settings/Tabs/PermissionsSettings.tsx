@@ -1,188 +1,129 @@
 
-import React, { useState } from "react";
-import { usePermissions, PermissionType } from "@/contexts/PermissionsContext";
-import { Switch } from "@/components/ui/switch";
+import React from "react";
+import { usePermissions, PermissionType, getPermissionName, getPermissionDescription } from "@/contexts/PermissionsContext";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, ShieldCheck, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Shield,
-  Cpu,
-  Network,
-  Gamepad2,
-  FileText,
-  Settings2,
-  RefreshCw,
-  Info,
-} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useTranslation } from "react-i18next";
 
 interface SettingsChangeProps {
   onChange: () => void;
 }
 
 const PermissionsSettings: React.FC<SettingsChangeProps> = ({ onChange }) => {
+  const { t } = useTranslation();
   const { permissions, requestPermission, revokePermission, hasPermission } = usePermissions();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
+  
   const handleTogglePermission = async (type: PermissionType) => {
-    if (hasPermission(type)) {
-      revokePermission(type);
-      onChange();
-    } else {
-      const granted = await requestPermission(type);
-      if (granted) {
-        onChange();
+    try {
+      if (hasPermission(type)) {
+        await revokePermission(type);
+      } else {
+        await requestPermission(type);
       }
-    }
-  };
-
-  const refreshAllPermissions = async () => {
-    setIsRefreshing(true);
-    
-    const permissionTypes: PermissionType[] = [
-      "hardware_monitoring",
-      "network_tools",
-      "game_detection",
-      "file_access",
-      "system_optimization"
-    ];
-    
-    const results = await Promise.all(
-      permissionTypes.map(async type => {
-        if (!hasPermission(type)) {
-          return await requestPermission(type);
-        }
-        return true;
-      })
-    );
-    
-    const allGranted = results.every(result => result === true);
-    
-    if (allGranted) {
-      toast.success("Todas as permissões atualizadas", {
-        description: "O GamePath AI agora tem acesso a todos os recursos necessários"
-      });
-    } else {
-      toast.warning("Algumas permissões foram negadas", {
-        description: "Algumas funcionalidades podem não estar disponíveis"
+      onChange(); // Notify settings component that changes were made
+    } catch (error) {
+      console.error(`Failed to toggle permission ${type}:`, error);
+      toast.error(t("permissions.toggleError"), {
+        description: t("permissions.tryAgain")
       });
     }
-    
-    onChange();
-    setIsRefreshing(false);
   };
-
-  const getPermissionIcon = (type: PermissionType) => {
-    switch (type) {
-      case "hardware_monitoring":
-        return <Cpu className="h-5 w-5" />;
-      case "network_tools":
-        return <Network className="h-5 w-5" />;
-      case "game_detection":
-        return <Gamepad2 className="h-5 w-5" />;
-      case "file_access":
-        return <FileText className="h-5 w-5" />;
-      case "system_optimization":
-        return <Settings2 className="h-5 w-5" />;
-      default:
-        return <Shield className="h-5 w-5" />;
-    }
-  };
-
-  // Calculate days remaining for each permission
-  const getDaysRemaining = (permission: typeof permissions[PermissionType]) => {
-    if (!permission.expiresAt) return null;
-    
-    const now = new Date();
-    const expiresAt = new Date(permission.expiresAt);
-    const diffTime = expiresAt.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  };
-
+  
+  const permissionTypes: PermissionType[] = [
+    "hardware_monitoring",
+    "network_tools",
+    "game_detection",
+    "file_access",
+    "system_optimization"
+  ];
+  
   return (
     <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-        <div>
-          <h3 className="text-lg font-medium text-white mb-1">Gerenciamento de Permissões</h3>
-          <p className="text-sm text-gray-400">
-            Controle quais recursos o GamePath AI pode acessar no seu sistema
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={refreshAllPermissions}
-          disabled={isRefreshing}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Atualizar Todas as Permissões
-        </Button>
+      <div>
+        <h2 className="text-lg font-medium text-white mb-2">{t("permissions.title")}</h2>
+        <p className="text-sm text-gray-400 mb-6">
+          {t("permissions.description")}
+        </p>
       </div>
-
-      <div className="bg-cyber-darkblue/40 border border-cyber-blue/20 p-4 rounded-lg mb-6">
-        <div className="flex items-center gap-2 text-sm text-yellow-400 mb-4">
-          <Info className="h-4 w-4" />
-          <p>As permissões expiram após 30 dias e precisarão ser renovadas</p>
-        </div>
-        
-        <div className="space-y-4">
-          {(Object.keys(permissions) as PermissionType[]).map((type) => {
-            const permission = permissions[type];
-            const isGranted = hasPermission(type);
-            const daysRemaining = getDaysRemaining(permission);
-            
-            return (
-              <div 
-                key={type} 
-                className="flex items-center justify-between py-3 border-b border-cyber-blue/10 last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${isGranted ? 'bg-cyber-green/20 text-cyber-green' : 'bg-gray-700/50 text-gray-400'}`}>
-                    {getPermissionIcon(type)}
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium text-white">
-                      {permission.type.split('_').map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                      ).join(' ')}
-                    </h4>
-                    
-                    {isGranted && daysRemaining !== null ? (
-                      <p className="text-xs text-cyber-green">
-                        Ativo • Expira em {daysRemaining} dias
-                      </p>
-                    ) : (
-                      <p className="text-xs text-gray-400">
-                        {isGranted ? "Ativo" : "Inativo"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Switch
-                      checked={isGranted}
-                      onCheckedChange={() => handleTogglePermission(type)}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    {isGranted ? "Revogar permissão" : "Conceder permissão"}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            );
-          })}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {permissionTypes.map((type) => (
+          <PermissionCard 
+            key={type}
+            type={type} 
+            isGranted={hasPermission(type)}
+            onToggle={() => handleTogglePermission(type)}
+          />
+        ))}
+      </div>
+      
+      <div className="bg-cyber-darkblue/50 border border-cyber-blue/20 rounded-md p-4 mt-6">
+        <div className="flex items-start gap-3">
+          <Shield className="h-5 w-5 text-cyber-blue mt-1" />
+          <div>
+            <h3 className="text-sm font-medium text-white">{t("permissions.securityNote")}</h3>
+            <p className="text-xs text-gray-400 mt-1">
+              {t("permissions.securityDescription")}
+            </p>
+          </div>
         </div>
       </div>
     </div>
+  );
+};
+
+interface PermissionCardProps {
+  type: PermissionType;
+  isGranted: boolean;
+  onToggle: () => void;
+}
+
+const PermissionCard: React.FC<PermissionCardProps> = ({ type, isGranted, onToggle }) => {
+  const { t } = useTranslation();
+  
+  return (
+    <Card className="bg-cyber-darkblue/70 border-cyber-blue/30">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-md font-tech text-white">
+            {getPermissionName(type)}
+          </CardTitle>
+          {isGranted ? (
+            <ShieldCheck className="h-5 w-5 text-cyber-green" />
+          ) : (
+            <ShieldX className="h-5 w-5 text-gray-500" />
+          )}
+        </div>
+        <CardDescription className="text-gray-400">
+          {getPermissionDescription(type)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center space-x-2 py-2">
+          <Switch 
+            checked={isGranted} 
+            onCheckedChange={onToggle} 
+            className="data-[state=checked]:bg-cyber-green"
+          />
+          <span className="text-sm text-gray-300">
+            {isGranted ? t("permissions.granted") : t("permissions.notGranted")}
+          </span>
+        </div>
+      </CardContent>
+      <CardFooter className="pt-0">
+        <Button 
+          variant={isGranted ? "outline" : "default"} 
+          size="sm" 
+          onClick={onToggle}
+          className={isGranted ? "border-cyber-red/40 text-cyber-red hover:bg-cyber-red/20" : "bg-cyber-blue hover:bg-cyber-blue/90"}
+        >
+          {isGranted ? t("permissions.revoke") : t("permissions.grant")}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

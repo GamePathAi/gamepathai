@@ -1,153 +1,123 @@
 
 {
-  "header": {
-    "appName": "GamePath AI",
-    "features": "Features",
-    "technology": "Technology", 
-    "pricing": "Pricing",
-    "login": "Login",
-    "getStarted": "Get Started"
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "more": "More",
+    "less": "Less"
   },
-  "technology": {
-    "title": "GamePath AI Technology",
-    "subtitle": "The advanced technology powering your gaming optimization experience",
-    "adaptiveRouting": {
-      "title": "Adaptive Routing",
-      "description": "Our proprietary algorithms analyze network conditions in real-time to find the optimal path for your gaming data.",
-      "dynamicPathSelection": {
-        "title": "Dynamic Path Selection",
-        "description": "Automatically selects the best network path based on real-time conditions"
-      },
-      "serverSpecificOptimization": {
-        "title": "Server Optimization",
-        "description": "Custom routing profiles for specific game servers"
-      },
-      "multiPointRouting": {
-        "title": "Multi-Point Routing",
-        "description": "Uses multiple connection points to ensure the most stable experience"
-      },
-      "averageLatencyReduction": {
-        "title": "Average Latency Reduction",
-        "value": "45%"
-      }
-    },
-    "performanceAI": {
-      "title": "Performance AI",
-      "description": "Machine learning systems that adapt to your hardware configuration and usage patterns for optimal performance.",
-      "adaptiveResourceAllocation": {
-        "title": "Adaptive Resource Allocation",
-        "description": "Dynamically allocates system resources based on game requirements"
-      },
-      "gameSpecificProfiles": {
-        "title": "Game-Specific Profiles",
-        "description": "Custom optimization profiles for thousands of popular games"
-      },
-      "backgroundProcessManagement": {
-        "title": "Background Process Management",
-        "description": "Intelligently manages system processes to prioritize gaming performance"
-      },
-      "fpsImprovement": {
-        "title": "Average FPS Improvement",
-        "value": "27%"
-      }
-    },
-    "globalNetwork": {
-      "title": "Global Network",
-      "description": "Access to optimized routes across our worldwide server infrastructure for low-latency gaming anywhere."
-    },
-    "security": {
-      "title": "Gaming Security",
-      "description": "Advanced protection features that keep your gaming experience safe and your data private.",
-      "ddosProtection": {
-        "title": "DDoS Protection",
-        "description": "Real-time protection against denial-of-service attacks"
-      },
-      "ipMasking": {
-        "title": "IP Masking",
-        "description": "Hide your real IP address to prevent targeting and swatting"
-      },
-      "antiCheatCompatibility": {
-        "title": "Anti-Cheat Compatibility",
-        "description": "Full compatibility with all major anti-cheat systems"
-      },
-      "protectionRate": {
-        "title": "Attack Prevention Rate",
-        "value": "99.7%"
-      }
-    },
-    "vpn": {
-      "title": "Gaming VPN",
-      "description": "Our specialized VPN optimized specifically for gaming performance and security.",
-      "geoRestrictionBypass": {
-        "title": "Geo-Restriction Bypass",
-        "description": "Access games and servers from any region regardless of your location"
-      },
-      "splitTunneling": {
-        "title": "Split Tunneling",
-        "description": "Route only game traffic through our optimized network"
-      },
-      "ispThrottlingPrevention": {
-        "title": "ISP Throttling Prevention",
-        "description": "Bypass ISP speed limits and traffic shaping for maximum throughput"
-      },
-      "globalServers": {
-        "title": "Global Server Network",
-        "value": "250+ Locations"
-      }
-    },
-    "cta": {
-      "description": "Experience significant latency reduction and performance improvements with our adaptive gaming technology.",
-      "startFreeTrial": "Start 3-Day Free Trial",
-      "viewPricing": "View Pricing"
-    }
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "username": "Username",
+    "emailRequired": "Email is required",
+    "passwordRequired": "Password is required",
+    "passwordMismatch": "Passwords do not match"
   },
-  "games": {
-    "meta": {
-      "description": "Optimize your {game} experience with GamePath AI. Reduce latency, eliminate packet loss, and boost FPS."
-    },
-    "notFound": {
-      "title": "Game Not Found",
-      "message": "Sorry, we couldn't find information about this game. Please check the URL or explore our supported games below."
-    },
-    "hero": {
-      "title": "Optimize Your {game} Experience",
-      "subtitle": "Reduce lag, increase FPS, and gain a competitive edge with GamePath AI's game-specific optimization.",
-      "optimizeNow": "Optimize Now",
-      "learnMore": "Learn More"
-    },
-    "metrics": {
-      "latency": "Latency Improvement",
-      "fps": "FPS Improvement",
-      "packetLoss": "Packet Loss Reduction",
-      "jitter": "Jitter Reduction",
-      "improvement": "Improvement",
-      "reduction": "Reduction"
-    },
-    "performanceMetrics": {
-      "title": "{game} Performance Metrics",
-      "subtitle": "Our users see significant improvements in all key performance areas when playing with GamePath AI."
-    },
-    "technicalImprovements": {
-      "title": "Technical Improvements for {game}",
-      "subtitle": "See the tangible differences our technology makes to your gaming experience.",
-      "before": "BEFORE",
-      "after": "AFTER"
-    },
-    "testimonials": {
-      "title": "{game} Player Testimonials",
-      "subtitle": "Hear what players are saying about their experience with GamePath AI."
-    },
-    "cta": {
-      "title": "Ready to Dominate in {game}?",
-      "description": "Join thousands of {game} players who have improved their gaming experience with GamePath AI. Achieve up to {latency}% lower latency and {fps}% higher FPS.",
-      "latencyReduction": "Latency Reduction",
-      "fpsImprovement": "FPS Improvement",
-      "packetLossReduction": "Packet Loss Reduction",
-      "tryForFree": "Try 3-Day Free Trial",
-      "exploreFeatures": "Explore Features"
-    },
-    "card": {
-      "viewDetails": "View Details"
-    }
+  "permissions": {
+    "title": "Permissions Management",
+    "description": "Control which resources GamePath AI can access to optimize your gaming experience.",
+    "grant": "Grant Permission",
+    "revoke": "Revoke Permission",
+    "granted": "Permission Granted",
+    "notGranted": "Permission Not Granted",
+    "toggleError": "Error toggling permission",
+    "tryAgain": "Please try again",
+    "securityNote": "Privacy Protection",
+    "securityDescription": "Permissions are stored locally and expire after 30 days. You can revoke them at any time.",
+    "error": "Permission Error"
+  },
+  "hardware": {
+    "monitoring": "Hardware Monitoring",
+    "usage": "Usage",
+    "temperature": "Temperature",
+    "cpu": "CPU",
+    "gpu": "GPU",
+    "ram": "Memory",
+    "disk": "Disk",
+    "network": "Network",
+    "fps": "FPS",
+    "cores": "Cores",
+    "total": "Total",
+    "used": "Used",
+    "free": "Free",
+    "memory": "Memory",
+    "memoryUsage": "Memory Usage",
+    "notAvailable": "N/A",
+    "startMonitoring": "Start Monitoring",
+    "stopMonitoring": "Stop Monitoring",
+    "permissionError": "Permission Error",
+    "permissionRequired": "Hardware monitoring permission is required",
+    "monitoringError": "Monitoring Error",
+    "tryAgain": "Please try again"
+  },
+  "network": {
+    "ping": "Ping",
+    "jitter": "Jitter",
+    "packetLoss": "Packet Loss",
+    "download": "Download",
+    "upload": "Upload",
+    "latency": "Latency",
+    "connection": "Connection",
+    "status": "Status",
+    "optimizer": "Network Optimizer",
+    "optimize": "Optimize Connection",
+    "title": "Network Metrics",
+    "current": "Current"
+  },
+  "monitoring": {
+    "title": "Monitoring Dashboard",
+    "description": "Monitor your system performance and network metrics.",
+    "requestAllPermissions": "Request All Permissions",
+    "refresh": "Refresh",
+    "refreshSuccess": "Refresh Successful",
+    "dataUpdated": "All monitoring data has been updated",
+    "hardware": "Hardware",
+    "network": "Network",
+    "storage": "Storage",
+    "processes": "Processes",
+    "systemStatus": "System Status",
+    "allPermissionsGranted": "All monitoring permissions have been granted",
+    "comingSoon": "This feature is coming soon. Stay tuned for updates!"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "appearance": "Appearance",
+    "language": "Language",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "security": "Security",
+    "advanced": "Advanced",
+    "reset": "Reset",
+    "resetConfirm": "Are you sure you want to reset all settings?",
+    "resetSuccess": "Settings reset successfully",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Error saving settings"
+  },
+  "storage": {
+    "drives": "Storage Drives",
+    "usage": "Storage Usage",
+    "optimize": "Optimize Storage"
+  },
+  "processes": {
+    "running": "Running Processes",
+    "optimize": "Optimize Processes"
   }
 }

@@ -15,3 +15,5 @@ export const getApiBaseUrl = (): string => {
   // This prevents the redirects we're seeing in the logs
   return '';
 };
+
+// Make sure to export getApiBaseUrl in the URL index file

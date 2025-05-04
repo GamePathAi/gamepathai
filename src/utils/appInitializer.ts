@@ -3,6 +3,13 @@ import { setupFetchInterceptor, setupRedirectDetector, setupMLProtection } from 
 import { addCSPMetaTag, removeInjectedScripts, periodicCleanup } from './cspHelper';
 
 /**
+ * Report ML-related issues to the console for debugging
+ */
+export const reportMLIssue = (issue: string, details?: any): void => {
+  console.error(`🚨 ML Issue: ${issue}`, details || '');
+};
+
+/**
  * Initialize application with security measures and protections
  */
 export const initializeApp = (): void => {
@@ -31,4 +38,3 @@ export const initializeApp = (): void => {
     console.error('❌ GamePath AI: Error initializing application security:', error);
   }
 };
-

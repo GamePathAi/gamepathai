@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle, Network, ShieldAlert } from "lucide-react";
-import { mlUrlDiagnostics } from '@/services/mlApiClient';
+import { mlUrlDiagnostics } from '@/services/ml/mlUrlDiagnostics';
 import { testAWSConnection } from '@/services/api';
 import { testBackendConnection } from '@/services/api';
 import { detectRedirectScripts, setupNavigationMonitor } from '@/utils/url';

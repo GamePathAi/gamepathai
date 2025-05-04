@@ -6,4 +6,4 @@ export * from './urlSanitization';
 export * from './redirectDetection';
 export * from './diagnostics';
 export * from './navigationMonitor';
-export * from './apiBaseUrl';  // Add the new apiBaseUrl export
+export * from './apiBaseUrl';  // Make sure we export apiBaseUrl

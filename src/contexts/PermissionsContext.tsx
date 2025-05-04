@@ -172,7 +172,8 @@ export const getPermissionName = (type: PermissionType): string => {
     case "system_optimization":
       return "Otimização do Sistema";
     default:
-      return type.replace(/_/g, " ");
+      // Fix: Explicitly cast to string to avoid the 'never' type issue
+      return String(type).replace(/_/g, " ");
   }
 };
 

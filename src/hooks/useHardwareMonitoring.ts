@@ -5,12 +5,16 @@ import { useTranslation } from "react-i18next";
 import { hardwareMonitoringService } from "@/services/hardware/hardwareMonitoringService";
 import { HardwareData } from "@/types/metrics";
 import { hardwareMonitoringUtils } from "@/utils/hardwareMonitoringUtils";
+import { performanceHistoryService } from "@/services/history/performanceHistoryService";
+import { HistoricalAnalysis } from "@/types/history";
 
 interface HardwareMonitoringOptions {
   interval?: number;
   onError?: (error: Error) => void;
   reportToCloud?: boolean;
   enableAnalysis?: boolean;
+  recordHistory?: boolean;
+  gameContext?: string;
 }
 
 export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) => {
@@ -29,11 +33,13 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
     category: 'excellent' | 'good' | 'fair' | 'poor';
     bottlenecks: string[];
   } | null>(null);
+  const [historicalAnalysis, setHistoricalAnalysis] = useState<HistoricalAnalysis | null>(null);
   
   const defaultOptions = {
     interval: 2000, // 2 seconds
     reportToCloud: false,
     enableAnalysis: true,
+    recordHistory: true,
     ...options
   };
   
@@ -59,7 +65,19 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
       const score = calculatePerformanceScore(newData);
       setPerformanceScore(score);
     }
-  }, [defaultOptions.enableAnalysis]);
+    
+    // Record historical data if enabled
+    if (defaultOptions.recordHistory) {
+      performanceHistoryService.recordDataPoint(newData, defaultOptions.gameContext);
+      
+      // Update historical analysis
+      const analysis = performanceHistoryService.analyzeHistory(
+        undefined, 
+        defaultOptions.gameContext
+      );
+      setHistoricalAnalysis(analysis);
+    }
+  }, [defaultOptions.enableAnalysis, defaultOptions.recordHistory, defaultOptions.gameContext]);
   
   // Function to start monitoring
   const startMonitoring = useCallback(async () => {
@@ -86,11 +104,17 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
     if (cleanup) {
       setIsMonitoring(true);
       setError(null);
+      
+      // Set current game context in history service
+      if (defaultOptions.gameContext) {
+        performanceHistoryService.setCurrentGame(defaultOptions.gameContext);
+      }
+      
       return cleanup;
     }
     
     return false;
-  }, [hasPermission, requestPermission, defaultOptions.interval, handleDataUpdate, handleError, t]);
+  }, [hasPermission, requestPermission, defaultOptions.interval, handleDataUpdate, handleError, t, defaultOptions.gameContext]);
   
   // Function to stop monitoring
   const stopMonitoring = useCallback(async () => {
@@ -98,6 +122,9 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
     
     if (result) {
       setIsMonitoring(false);
+      
+      // Clear current game context
+      performanceHistoryService.setCurrentGame(null);
     }
     
     return result;
@@ -124,6 +151,7 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
     error,
     analysis,
     performanceScore,
+    historicalAnalysis,
     startMonitoring,
     stopMonitoring,
     generatePerformanceReport

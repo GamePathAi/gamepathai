@@ -3,7 +3,7 @@
  * Utilities for detecting and preventing redirect attempts
  */
 
-import { detectRedirectAttempt } from '../url';
+import { detectRedirectAttempt, sanitizeApiUrl } from '../url';
 
 /**
  * Setup monitoring for redirect attempts in the DOM

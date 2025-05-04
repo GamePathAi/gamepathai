@@ -23,8 +23,5 @@ export default defineConfig(({ mode }) => ({
     'process.env.IS_ELECTRON': process.env.IS_ELECTRON || 'false',
     'process.env.NODE_ENV': JSON.stringify(mode),
   },
-  server: {
-    port: 8080,
-    ...serverConfig
-  }
+  server: serverConfig
 }));

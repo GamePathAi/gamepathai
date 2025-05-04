@@ -61,7 +61,7 @@ export const mlService = {
     optimizeSettings?: boolean,
     optimizeSystem?: boolean,
     aggressiveness?: 'low' | 'medium' | 'high',
-    systemInfo?: any // NOVO: Permitir envio de informações do sistema
+    systemInfo?: any
   } = {}): Promise<MLOptimizeGameResponse> => {
     // Default all options to true if not specified
     const finalOptions = {

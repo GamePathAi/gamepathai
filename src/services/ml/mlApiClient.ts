@@ -143,7 +143,7 @@ export const mlApiClient = {
       }
       
       // Report ML issue for analytics
-      reportMLIssue(error, endpoint, '');
+      reportMLIssue('API error', error);
       
       throw error;
     }

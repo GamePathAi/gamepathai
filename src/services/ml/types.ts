@@ -1,116 +1,76 @@
 
 /**
- * Type definitions for ML API responses
+ * Type definitions for ML API
  */
 
-// Custom error for ML operations
-export class MLApiError extends Error {
-  status?: number;
-  endpoint?: string;
-  modelType?: string;
-
-  constructor(message: string, options: { status?: number, endpoint?: string, modelType?: string } = {}) {
-    super(message);
-    this.name = 'MLApiError';
-    this.status = options.status;
-    this.endpoint = options.endpoint;
-    this.modelType = options.modelType;
-  }
+/**
+ * ML API Error response
+ */
+export interface MLApiError {
+  status: string | number;
+  message: string;
+  details?: string;
+  originalError?: any;
 }
 
-// ML API Configuration
-export const ML_API_CONFIG = {
-  TIMEOUT_MS: 30000, // 30 seconds timeout for ML operations
-  RETRY_ATTEMPTS: 2,
-  RETRY_DELAY_MS: 2000,
-  MODELS: {
-    ROUTE_OPTIMIZER: 'route-optimizer',
-    PERFORMANCE_PREDICTOR: 'performance-predictor',
-    GAME_DETECTION: 'game-detection'
-  },
-  DEV_MODE: process.env.NODE_ENV === 'development'
-};
+/**
+ * ML Route Optimizer Response
+ */
+export interface MLRouteOptimizerResponse {
+  success: boolean;
+  optimizedRoutes: {
+    route: string;
+    latency: number;
+    jitter: number;
+    packetLoss: number;
+    improvement: number;
+  }[];
+  recommendations: {
+    type: string;
+    description: string;
+    impact: 'high' | 'medium' | 'low';
+  }[];
+}
 
-// Type definitions for ML API responses
+/**
+ * ML Performance Predictor Response
+ */
+export interface MLPerformancePredictorResponse {
+  success: boolean;
+  recommendations: {
+    setting: string;
+    currentValue: string | number;
+    recommendedValue: string | number;
+    impact: number;
+  }[];
+  expectedGains: {
+    fps: number;
+    stability: number;
+  };
+}
+
+/**
+ * ML Detected Games Response
+ */
+export interface MLDetectedGamesResponse {
+  detectedGames: {
+    id: string;
+    name: string;
+    type?: string;
+    executable?: string;
+    installPath?: string;
+  }[];
+}
+
+/**
+ * ML Optimize Game Response
+ */
 export interface MLOptimizeGameResponse {
   success: boolean;
-  optimizationType: 'network' | 'system' | 'both' | 'none';
-  improvements: {
+  optimizationType?: "network" | "system" | "both" | "none";
+  improvements?: {
     latency?: number;
     fps?: number;
     stability?: number;
   };
-}
-
-export interface MLDetectedGamesResponse {
-  detectedGames: Array<{
-    id: string;
-    name: string;
-    path: string;
-    lastPlayed?: Date;
-    version?: string;
-  }>;
-}
-
-export interface MLRouteOptimizerResponse {
-  success: boolean;
-  optimizedRoutes: number;
-  latencyReduction: number;
-  settings: Record<string, any>;
-}
-
-export interface MLPerformancePredictorResponse {
-  recommendedSettings: Record<string, any>;
-  expectedFps: number;
-  confidence: number;
-}
-
-export interface MLSystemInfoResponse {
-  systemInfo: {
-    cpu: {
-      model: string;
-      cores: number;
-      threads: number;
-      speed: number;
-    };
-    ram: {
-      total: number; // in GB
-      free: number;
-      usage: number; // percentage
-    };
-    gpu: {
-      model: string;
-      vram: number; // in GB
-      driver: string;
-    };
-    network: {
-      bandwidth: number; // in Mbps
-      latency: number; // in ms
-      jitter: number; // in ms
-    };
-  }
-}
-
-export interface MLConnectivityTestResult {
-  success: boolean;
-  results: Record<string, { success: boolean; error?: string }>;
-}
-
-export interface MLRedirectProtectionResult {
-  protected: boolean;
-  details: string;
-}
-
-export interface MLExtensionCheckResult {
-  detected: boolean;
-  extensions: string[];
-}
-
-export interface MLUrlTestResult {
-  originalUrl: string;
-  finalUrl: string;
-  wasRedirected: boolean;
-  isGamePathAI: boolean;
-  responseStatus?: number;
-  contentType?: string;
 }

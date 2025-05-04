@@ -2,6 +2,7 @@
 // Export ML API modules
 export * from './mlApiClient';
 export * from './mlUrlDiagnostics';
+export * from './mlService';
 
 export interface MLDetectedGamesResponse {
   detectedGames: {

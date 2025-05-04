@@ -2,6 +2,8 @@
  * URL manipulation and security checks
  */
 
+import { getApiBaseUrl } from './url/apiBaseUrl';
+
 /**
  * Detect redirect attempts based on URL patterns
  */
@@ -158,3 +160,6 @@ export const setupNavigationMonitor = (): void => {
     console.error('⚠️ Could not override history methods:', e);
   }
 };
+
+// Export the getApiBaseUrl function directly from url.ts
+export { getApiBaseUrl };

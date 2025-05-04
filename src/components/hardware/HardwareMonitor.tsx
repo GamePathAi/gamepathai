@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import PermissionGate from "@/components/permissions/PermissionGate";
-import { Cpu, Memory, HardDrive } from "lucide-react";
+import { Cpu, MemoryStick, HardDrive } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface HardwareMonitorProps {

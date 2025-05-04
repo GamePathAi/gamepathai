@@ -4,6 +4,12 @@ export interface HistoryPoint {
   value: number;
 }
 
+// Add TimeSeriesData interface which is being referenced
+export interface TimeSeriesData {
+  time: string;
+  value: number;
+}
+
 export interface MetricData {
   current: number;
   average: number;

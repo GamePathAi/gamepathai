@@ -1,10 +1,9 @@
-
 import React from "react";
 import MetricCard from "@/components/MetricCard";
 import MetricChart from "@/components/MetricChart";
 import { BarChart4, Cpu, Zap, Activity } from "lucide-react";
 import { useMetrics } from "@/hooks/useMetrics";
-import { SystemData, MetricData, TimeSeriesData } from "@/types/metrics";
+import { SystemData, MetricData, HistoryPoint } from "@/types/metrics";
 
 const SystemMetrics: React.FC = () => {
   const { system, jitter, isLoading } = useMetrics();

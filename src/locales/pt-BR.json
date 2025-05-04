@@ -51,7 +51,20 @@
     "ram": "Memória RAM",
     "disk": "Disco",
     "network": "Rede",
-    "fps": "FPS"
+    "fps": "FPS",
+    "notAvailable": "N/D",
+    "cores": "Núcleos",
+    "total": "Total",
+    "used": "Usado",
+    "free": "Livre",
+    "memory": "Memória",
+    "memoryUsage": "Uso de Memória",
+    "startMonitoring": "Iniciar Monitoramento",
+    "stopMonitoring": "Parar Monitoramento",
+    "permissionError": "Erro de permissão",
+    "permissionRequired": "Permissão de monitoramento necessária",
+    "monitoringError": "Erro ao iniciar monitoramento",
+    "tryAgain": "Por favor, tente novamente"
   },
   "network": {
     "ping": "Ping",

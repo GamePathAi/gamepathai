@@ -4,7 +4,7 @@ export interface HistoryPoint {
   value: number;
 }
 
-// Add TimeSeriesData interface which is being referenced
+// TimeSeriesData interface needed for various components
 export interface TimeSeriesData {
   time: string;
   value: number;

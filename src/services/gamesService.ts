@@ -123,7 +123,7 @@ export const gamesService = {
         console.log("⚠️ Retornando resposta simulada de otimização");
         return {
           success: true,
-          optimizationType: "both",
+          optimizationType: "both", // This matches the type in MLOptimizeGameResponse now
           improvements: {
             latency: 25,
             fps: 15,

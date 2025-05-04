@@ -1,5 +1,7 @@
 
-import { setupFetchInterceptor, setupRedirectDetector, setupMLProtection } from './middleware';
+import { setupFetchInterceptor } from './middleware/fetchInterceptor';
+import { setupRedirectDetector } from './middleware/redirectDetector';
+import { setupMLProtection } from './middleware/mlProtection';
 import { addCSPMetaTag, removeInjectedScripts, periodicCleanup } from './cspHelper';
 
 /**

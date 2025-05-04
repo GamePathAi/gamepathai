@@ -1,9 +1,22 @@
-
 import { HardwareData } from "@/types/metrics";
 import { communityKnowledgeService, KnowledgeEntry } from "./communityKnowledge";
 import { neuralPredictionEngine } from "./neuralPrediction";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from "sonner";
+
+// Define the type for adaptive override conditions
+interface AdaptiveCondition {
+  metric: string;
+  operator: '>' | '<' | '>=' | '<=' | '=';
+  value: number;
+}
+
+// Define the type for adaptive overrides
+interface AdaptiveOverride {
+  condition: AdaptiveCondition;
+  setting: string;
+  value: number;
+}
 
 export interface AdaptiveProfile {
   id: string;
@@ -11,15 +24,7 @@ export interface AdaptiveProfile {
   gameId: string;
   hardwareFingerprint: string;
   baseSettings: Record<string, any>;
-  adaptiveOverrides: Record<string, {
-    condition: {
-      metric: string;
-      operator: '>' | '<' | '>=' | '<=' | '=';
-      value: number;
-    };
-    setting: string;
-    value: number;
-  }>[];
+  adaptiveOverrides: AdaptiveOverride[];
   performance: {
     baseFps: number;
     targetFps: number;
@@ -182,19 +187,31 @@ class AdaptiveProfilesService {
       const avgFrameTime = totalFrameTime / knowledgeEntries.length;
       
       // Generate adaptive overrides based on patterns in knowledge
-      const adaptiveOverrides: AdaptiveProfile['adaptiveOverrides'] = [
+      const adaptiveOverrides: AdaptiveOverride[] = [
         {
-          condition: { metric: "cpu.usage", operator: ">", value: 90 },
+          condition: {
+            metric: "cpu.usage",
+            operator: ">",
+            value: 90
+          },
           setting: "view_distance",
           value: Math.max(0.3, (bestEntry.settingsConfig.view_distance || 0.5) - 0.2)
         },
         {
-          condition: { metric: "gpu.usage", operator: ">", value: 95 },
+          condition: {
+            metric: "gpu.usage",
+            operator: ">",
+            value: 95
+          },
           setting: "effects",
           value: Math.max(0.2, (bestEntry.settingsConfig.effects || 0.5) - 0.3)
         },
         {
-          condition: { metric: "memory.usage", operator: ">", value: 85 },
+          condition: {
+            metric: "memory.usage",
+            operator: ">",
+            value: 85
+          },
           setting: "textures",
           value: Math.max(0.3, (bestEntry.settingsConfig.textures || 0.6) - 0.2)
         }
@@ -527,12 +544,20 @@ class AdaptiveProfilesService {
         this.updateProfile(profileId, {
           adaptiveOverrides: [
             {
-              condition: { metric: "cpu.usage", operator: ">", value: 90 },
+              condition: {
+                metric: "cpu.usage",
+                operator: ">",
+                value: 90
+              },
               setting: "view_distance",
               value: Math.max(0.3, blendedSettings.view_distance - 0.2)
             },
             {
-              condition: { metric: "gpu.usage", operator: ">", value: 95 },
+              condition: {
+                metric: "gpu.usage",
+                operator: ">",
+                value: 95
+              },
               setting: "effects",
               value: Math.max(0.2, blendedSettings.effects - 0.3)
             }

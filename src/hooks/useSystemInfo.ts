@@ -24,6 +24,11 @@ interface SystemInfo {
   };
 }
 
+// Adding TypeScript interface for Navigator with deviceMemory
+interface NavigatorWithMemory extends Navigator {
+  deviceMemory?: number;
+}
+
 export function useSystemInfo() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,10 +96,11 @@ export function useSystemInfo() {
     const info: SystemInfo = {};
     
     try {
-      // Get memory info
-      if (navigator.deviceMemory) {
+      // Get memory info - using the extended navigator type
+      const navigatorWithMemory = navigator as NavigatorWithMemory;
+      if (navigatorWithMemory.deviceMemory) {
         info.memory = {
-          total: navigator.deviceMemory
+          total: navigatorWithMemory.deviceMemory
         };
       }
       
@@ -150,7 +156,8 @@ export function useSystemInfo() {
   function getGPUInfo(): string {
     try {
       const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      // Cast to WebGLRenderingContext to ensure we have the correct type with getExtension
+      const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
       
       if (!gl) {
         return "Unknown";

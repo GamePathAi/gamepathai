@@ -1,72 +1,24 @@
 
 import { toast } from "sonner";
-import { v4 as uuidv4 } from 'uuid';
-
-// Types for our federated learning system
-export interface ModelUpdate {
-  modelId: string;
-  version: number;
-  weights: number[]; // Simplified representation of model weights
-  metrics: {
-    accuracy: number;
-    loss: number;
-    timestamp: number;
-  };
-  hardwareFingerprint: string;
-  gameId?: string;
-}
-
-export interface FederatedModelConfig {
-  modelId: string;
-  name: string;
-  description: string;
-  version: number;
-  hyperparameters: Record<string, any>;
-  inputShape: number[];
-  outputShape: number[];
-  lastUpdated: number;
-}
+import { FederatedModelConfig } from "./types";
 
 /**
- * Service to handle federated learning operations
+ * Handles model synchronization with the federated learning server
  */
-class FederatedLearningService {
+export class ModelSynchronization {
   private deviceId: string;
   private models: Map<string, any> = new Map();
   private modelConfigs: Map<string, FederatedModelConfig> = new Map();
-  private isTraining: boolean = false;
   private serverSyncInterval: number | null = null;
   
-  constructor() {
-    // Generate a unique device ID if one doesn't exist
-    this.deviceId = localStorage.getItem('deviceId') || uuidv4();
-    localStorage.setItem('deviceId', this.deviceId);
-  }
-  
-  /**
-   * Initialize the federated learning system
-   */
-  public async initialize(): Promise<boolean> {
-    try {
-      console.log("🧠 Initializing Federated Learning System...");
-      
-      // Load model configurations from server
-      await this.fetchModelConfigurations();
-      
-      // Set up periodic model synchronization
-      this.setupModelSynchronization();
-      
-      return true;
-    } catch (error) {
-      console.error("Failed to initialize federated learning:", error);
-      return false;
-    }
+  constructor(deviceId: string) {
+    this.deviceId = deviceId;
   }
   
   /**
    * Fetch available model configurations from the server
    */
-  private async fetchModelConfigurations(): Promise<void> {
+  public async fetchModelConfigurations(): Promise<void> {
     try {
       // In a real implementation, this would fetch from a server
       // For now, we'll use mock data
@@ -116,7 +68,7 @@ class FederatedLearningService {
   /**
    * Set up periodic model synchronization with the server
    */
-  private setupModelSynchronization(): void {
+  public setupModelSynchronization(): void {
     if (this.serverSyncInterval) {
       clearInterval(this.serverSyncInterval);
     }
@@ -161,7 +113,7 @@ class FederatedLearningService {
   /**
    * Download a model from the server
    */
-  private async downloadModel(modelId: string): Promise<void> {
+  public async downloadModel(modelId: string): Promise<void> {
     try {
       console.log(`⬇️ Downloading model: ${modelId}`);
       
@@ -197,104 +149,42 @@ class FederatedLearningService {
   /**
    * Upload model updates to the server
    */
-  private async uploadModelUpdates(): Promise<void> {
+  public async uploadModelUpdates(): Promise<void> {
     // In a real implementation, this would calculate model updates and send them to a server
     console.log("📤 Checking for model updates to upload...");
     // This would normally upload model gradients or weights differences
   }
   
   /**
-   * Train a model locally using device data
-   */
-  public async trainModel(modelId: string, trainingData: { inputs: number[][], outputs: number[][] }): Promise<boolean> {
-    if (this.isTraining) {
-      console.warn("Training already in progress, ignoring request");
-      return false;
-    }
-    
-    try {
-      this.isTraining = true;
-      console.log(`🏋️ Training model: ${modelId}`);
-      
-      const model = this.models.get(modelId);
-      if (!model) {
-        throw new Error(`Model ${modelId} not found locally`);
-      }
-      
-      // Mock training process
-      const epochs = this.modelConfigs.get(modelId)?.hyperparameters.epochs || 1;
-      
-      for (let epoch = 0; epoch < epochs; epoch++) {
-        // Simulate epoch training
-        await new Promise<void>(resolve => {
-          setTimeout(() => {
-            console.log(`Epoch ${epoch + 1}/${epochs} complete`);
-            resolve();
-          }, 500);
-        });
-      }
-      
-      // In a real implementation, this would actually train the model
-      // using TensorFlow.js or a similar library
-      
-      console.log(`✅ Training complete for model: ${modelId}`);
-      
-      // Schedule update to be sent to server
-      this.queueModelUpdateForSync(modelId);
-      
-      return true;
-    } catch (error) {
-      console.error(`Failed to train model ${modelId}:`, error);
-      return false;
-    } finally {
-      this.isTraining = false;
-    }
-  }
-  
-  /**
-   * Make predictions using a trained model
-   */
-  public predict(modelId: string, input: number[]): number[] | null {
-    const model = this.models.get(modelId);
-    if (!model) {
-      console.error(`Model ${modelId} not found locally`);
-      return null;
-    }
-    
-    try {
-      return model.predict(input);
-    } catch (error) {
-      console.error(`Prediction failed for model ${modelId}:`, error);
-      return null;
-    }
-  }
-  
-  /**
    * Queue model update to be synchronized with the server
    */
-  private queueModelUpdateForSync(modelId: string): void {
+  public queueModelUpdateForSync(modelId: string): void {
     console.log(`📋 Queuing model update for sync: ${modelId}`);
     // In a real implementation, this would store the update in IndexedDB 
     // or similar for later sync
   }
   
   /**
-   * Get hardware fingerprint for model training
+   * Clean up resources
    */
-  public getHardwareFingerprint(): string {
-    // In a real implementation, this would generate a unique fingerprint
-    // based on hardware characteristics
-    return this.deviceId;
+  public cleanup(): void {
+    if (this.serverSyncInterval) {
+      clearInterval(this.serverSyncInterval);
+      this.serverSyncInterval = null;
+    }
   }
   
   /**
-   * Clean up resources when service is destroyed
+   * Get the models map
    */
-  public destroy(): void {
-    if (this.serverSyncInterval) {
-      clearInterval(this.serverSyncInterval);
-    }
+  public getModels(): Map<string, any> {
+    return this.models;
+  }
+  
+  /**
+   * Get the model configurations map
+   */
+  public getModelConfigs(): Map<string, FederatedModelConfig> {
+    return this.modelConfigs;
   }
 }
-
-export const federatedLearningService = new FederatedLearningService();

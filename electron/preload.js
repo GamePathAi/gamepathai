@@ -42,5 +42,11 @@ contextBridge.exposeInMainWorld('electron', {
     return () => {
       ipcRenderer.removeListener('game-detected', subscription);
     };
-  }
+  },
+  
+  // Permissions system
+  checkPermission: (permissionType) => ipcRenderer.invoke('check-permission', permissionType),
+  requestPermission: (permissionType) => ipcRenderer.invoke('request-permission', permissionType),
+  listPermissions: () => ipcRenderer.invoke('list-permissions'),
+  revokePermission: (permissionType) => ipcRenderer.invoke('revoke-permission', permissionType)
 });

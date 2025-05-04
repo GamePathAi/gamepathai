@@ -11,7 +11,8 @@ import {
   LayoutDashboard, 
   ShieldCheck, 
   CreditCard, 
-  Code 
+  Code,
+  Key
 } from "lucide-react";
 import SettingsTabs, { SettingsTab } from "./SettingsTabs";
 import SettingsHeader from "./SettingsHeader";
@@ -29,6 +30,7 @@ import AdvancedSettings from "./Tabs/AdvancedSettings";
 import InGameOverlaySettings from "./Tabs/InGameOverlaySettings";
 import ScreenRecordingSettings from "./Tabs/ScreenRecordingSettings";
 import SubscriptionSettings from "./Tabs/SubscriptionSettings";
+import PermissionsSettings from "./Tabs/PermissionsSettings";
 
 interface SettingsChangeProps {
   onChange: () => void;
@@ -43,6 +45,7 @@ const SettingsContent: React.FC = () => {
     { id: "overlay", label: "In-Game Overlay", icon: Monitor },
     { id: "recording", label: "Screen Recording", icon: Video },
     { id: "interface", label: "Interface", icon: LayoutDashboard },
+    { id: "permissions", label: "Permissions", icon: Key },
     { id: "security", label: "Security", icon: ShieldCheck },
     { id: "subscription", label: "Subscription", icon: CreditCard },
     { id: "advanced", label: "Advanced", icon: Code }
@@ -122,6 +125,8 @@ const SettingsContent: React.FC = () => {
         return <ScreenRecordingSettings {...settingsChangeProps} />;
       case "interface":
         return <InterfaceSettings {...settingsChangeProps} />;
+      case "permissions":
+        return <PermissionsSettings {...settingsChangeProps} />;
       case "security":
         return <SecuritySettings {...settingsChangeProps} />;
       case "subscription":

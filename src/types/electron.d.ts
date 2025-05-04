@@ -17,6 +17,12 @@ interface ElectronAPI {
   // Game detection
   detectGames: () => Promise<any[]>;
   onGameDetected: (callback: (data: any) => void) => () => void;
+  
+  // Permissions system
+  checkPermission: (permissionType: string) => Promise<boolean>;
+  requestPermission: (permissionType: string) => Promise<boolean>;
+  listPermissions: () => Promise<Record<string, boolean>>;
+  revokePermission: (permissionType: string) => Promise<boolean>;
 }
 
 declare global {

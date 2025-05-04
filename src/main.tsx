@@ -17,6 +17,7 @@ import "./lib/i18n.ts";
 import { CheckoutProvider } from "./contexts/CheckoutContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OnboardingProvider } from "./contexts/OnboardingContext";
+import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { initializeApp } from "./utils/appInitializer";
 import { periodicCleanup } from "./utils/cspHelper";
 
@@ -48,7 +49,9 @@ createRoot(document.getElementById("root")!).render(
         <AuthProvider>
           <CheckoutProvider>
             <OnboardingProvider>
-              <App />
+              <PermissionsProvider>
+                <App />
+              </PermissionsProvider>
             </OnboardingProvider>
           </CheckoutProvider>
         </AuthProvider>

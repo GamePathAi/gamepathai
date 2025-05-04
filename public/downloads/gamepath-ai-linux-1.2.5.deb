@@ -1,3 +1,5 @@
 
 This is a placeholder file for the GamePath AI Linux installer.
-In a real application, this would be an actual DEB package file.
+In an actual production environment, this would be an actual DEB package file.
+
+For demonstration purposes only.

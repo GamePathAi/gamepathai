@@ -47,7 +47,12 @@ const DownloadSection: React.FC = () => {
   const handleDownload = (os: 'windows' | 'mac' | 'linux') => {
     // In a real implementation, this would track the download event
     console.log(`Starting download for ${os} version`);
-    toast.success(`Starting download for ${os.charAt(0).toUpperCase() + os.slice(1)}`);
+    
+    // Show demo notification
+    toast.info(`DEMO MODE: This is a placeholder file, not an actual installer`, {
+      description: "In a production environment, this would download a real installer.",
+      duration: 8000,
+    });
     
     try {
       // Use a direct link instead of redirect
@@ -64,7 +69,10 @@ const DownloadSection: React.FC = () => {
       
       // Show additional installation instructions toast after a short delay
       setTimeout(() => {
-        toast.info(`After download completes, run the installer to set up GamePath AI for ${os.charAt(0).toUpperCase() + os.slice(1)}.`);
+        toast.info(`This is a text file placeholder for demonstration purposes.`, {
+          description: `In production, this would be a real ${os.charAt(0).toUpperCase() + os.slice(1)} installer.`,
+          duration: 5000,
+        });
       }, 3000);
     } catch (error) {
       console.error('Download error:', error);
@@ -76,7 +84,7 @@ const DownloadSection: React.FC = () => {
     switch(os) {
       case 'windows': return <Monitor className="mr-2" />;
       case 'mac': return <Apple className="mr-2" />;
-      case 'linux': return <Terminal className="mr-2" />; // Changed from Linux to Terminal icon
+      case 'linux': return <Terminal className="mr-2" />;
       default: return <Download className="mr-2" />;
     }
   };
@@ -95,6 +103,11 @@ const DownloadSection: React.FC = () => {
             Get started with GamePath AI today and experience smoother gaming with lower latency, 
             higher FPS, and enhanced security.
           </p>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-4 mx-auto max-w-xl">
+            <p className="text-amber-300 text-sm">
+              <strong>Demo Notice:</strong> Downloads are placeholder text files for demonstration purposes only.
+            </p>
+          </div>
         </div>
         
         <div className="max-w-4xl mx-auto">

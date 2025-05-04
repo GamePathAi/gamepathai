@@ -1,3 +1,5 @@
 
 This is a placeholder file for the GamePath AI macOS installer.
-In a real application, this would be an actual DMG file.
+In an actual production environment, this would be a real DMG file.
+
+For demonstration purposes only.

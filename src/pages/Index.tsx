@@ -1,12 +1,12 @@
 
 import React from "react";
 import Layout from "@/components/Layout";
-import Dashboard from "@/pages/Dashboard";
+import MonitoringDashboard from "@/pages/MonitoringDashboard";
 
 const Index = () => {
   return (
     <Layout>
-      <Dashboard />
+      <MonitoringDashboard />
     </Layout>
   );
 };

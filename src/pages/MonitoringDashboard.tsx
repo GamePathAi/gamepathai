@@ -1,495 +1,312 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { ArrowDownUp, Cpu, Gamepad, Thermometer, Wifi, Zap } from "lucide-react";
+import { toast } from "sonner";
 import Layout from "@/components/Layout";
-import { Helmet } from "react-helmet-async";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; // Add this import for Badge
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Download, RefreshCw, Clock, Settings, Bell, CloudLightning } from "lucide-react";
-import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
-import { cloudwatchClient } from "@/services/monitoring/cloudwatchClient";
-import { ALERT_THRESHOLDS } from "@/services/monitoring/alarmsService";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { testBackendConnection } from "@/services/api";
+import GameCard from "@/components/GameCard";
+import OptimizationControls from "@/components/OptimizationControls";
 
-const MonitoringDashboard = () => {
-  const { 
-    ping, 
-    jitter, 
-    fps, 
-    system, 
-    isOfflineMode, 
-    monitoringEnabled, 
-    setMonitoringEnabled,
-    refetch
-  } = useAdvancedMetrics();
+const generateMockData = () => {
+  return {
+    cpu: {
+      usage: Math.floor(Math.random() * 40) + 20,
+      temperature: Math.floor(Math.random() * 20) + 50
+    },
+    gpu: {
+      usage: Math.floor(Math.random() * 50) + 30,
+      temperature: Math.floor(Math.random() * 15) + 60
+    },
+    network: {
+      latency: Math.floor(Math.random() * 100) + 5,
+      jitter: Math.floor(Math.random() * 15),
+      packetLoss: (Math.random() * 2).toFixed(1)
+    },
+    memory: {
+      usage: Math.floor(Math.random() * 40) + 30
+    }
+  };
+};
+
+const mockGames = [
+  {
+    id: "1",
+    name: "Counter-Strike 2",
+    image: "https://placehold.co/600x400/1A2033/ffffff?text=CS2",
+    isOptimized: true,
+    genre: "FPS",
+    optimizationType: "both" as "both" | "network" | "system" | "none"
+  },
+  {
+    id: "2",
+    name: "Valorant",
+    image: "https://placehold.co/600x400/1A2033/ffffff?text=Valorant",
+    isOptimized: true,
+    genre: "FPS",
+    optimizationType: "network" as "both" | "network" | "system" | "none"
+  },
+  {
+    id: "3",
+    name: "League of Legends",
+    image: "https://placehold.co/600x400/1A2033/ffffff?text=LoL",
+    isOptimized: false,
+    genre: "MOBA",
+    optimizationType: "none" as "both" | "network" | "system" | "none"
+  },
+  {
+    id: "4",
+    name: "Fortnite",
+    image: "https://placehold.co/600x400/1A2033/ffffff?text=Fortnite",
+    isOptimized: false,
+    genre: "Battle Royale",
+    optimizationType: "none" as "both" | "network" | "system" | "none"
+  }
+];
+
+const MonitoringDashboard: React.FC = () => {
+  const [systemData, setSystemData] = useState(generateMockData());
+  const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [games, setGames] = useState(mockGames);
+
+  useEffect(() => {
+    // Check backend connection status
+    const checkConnection = async () => {
+      const isConnected = await testBackendConnection();
+      setBackendStatus(isConnected ? 'online' : 'offline');
+    };
+    
+    checkConnection();
+    
+    // Update system stats periodically
+    const interval = setInterval(() => {
+      setSystemData(generateMockData());
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleOptimizeAll = () => {
+    setIsOptimizing(true);
+    toast.loading("Otimizando sistema e jogos...");
+    
+    // Simulate optimization process
+    setTimeout(() => {
+      setIsOptimizing(false);
+      toast.success("Otimização concluída com sucesso!", {
+        description: "Todos os jogos e configurações do sistema foram otimizados."
+      });
+      
+      // Update games with optimized status
+      setGames(prev => prev.map(game => ({...game, isOptimized: true, optimizationType: "both"})));
+    }, 3000);
+  };
   
-  const isCloudwatchAvailable = cloudwatchClient.isAvailable();
-  
+  const handleScanForGames = () => {
+    toast.loading("Escaneando sistema por jogos instalados...");
+    
+    // Simulate game scanning
+    setTimeout(() => {
+      toast.success("Escaneamento concluído!", {
+        description: "4 jogos encontrados no seu sistema."
+      });
+    }, 2000);
+  };
+
   return (
     <Layout>
-      <Helmet>
-        <title>Monitoring Dashboard | GamePath AI</title>
-      </Helmet>
-      
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto p-4">
+        {/* Header with status */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
-            <h1 className="text-2xl font-cyber font-bold text-white">Monitoring Dashboard</h1>
-            <p className="text-gray-400">Advanced metrics and performance monitoring</p>
+            <h1 className="text-3xl font-cyber font-bold text-white mb-1">GamePath AI Dashboard</h1>
+            <p className="text-gray-400">Monitoramento e otimização em tempo real do seu sistema</p>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4 mt-4 md:mt-0">
+            <div className={`flex items-center ${backendStatus === 'online' ? 'text-cyber-green' : 'text-red-500'}`}>
+              <div className={`w-2 h-2 rounded-full mr-2 ${backendStatus === 'online' ? 'bg-cyber-green' : 'bg-red-500'}`}></div>
+              <span className="text-sm font-tech">{backendStatus === 'online' ? 'Conectado' : 'Offline'}</span>
+            </div>
+            
             <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => refetch()}
+              variant="cyber"
+              onClick={handleOptimizeAll}
+              disabled={isOptimizing}
+              className="bg-cyber-blue/20 text-cyber-blue border border-cyber-blue/50 hover:bg-cyber-blue/30"
             >
-              <RefreshCw size={16} className="mr-2" />
-              Refresh Data
+              <Zap className="mr-2" size={16} />
+              {isOptimizing ? "Otimizando..." : "Otimizar Tudo"}
             </Button>
             
             <Button 
-              variant={monitoringEnabled ? "default" : "outline"}
-              size="sm"
-              className={monitoringEnabled ? "bg-cyber-green hover:bg-cyber-green/90" : ""}
-              onClick={() => setMonitoringEnabled(!monitoringEnabled)}
+              variant="outline" 
+              onClick={handleScanForGames}
+              className="border-cyber-purple/50 text-cyber-purple hover:bg-cyber-purple/20"
             >
-              {monitoringEnabled ? "Monitoring Active" : "Monitoring Disabled"}
+              <Gamepad className="mr-2" size={16} />
+              Escanear Jogos
             </Button>
           </div>
         </div>
         
-        {isOfflineMode && (
-          <Card className="bg-amber-900/20 border border-amber-500/30 mb-6">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-2">
-                <CloudLightning size={18} className="text-amber-500" />
-                <p className="text-amber-300">
-                  You are currently in offline mode. Some advanced monitoring features are limited.
-                </p>
+        {/* System metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="border-cyber-blue/30 bg-cyber-darkblue shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-tech flex items-center">
+                <Cpu className="mr-2 text-cyber-blue" size={16} />
+                CPU
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-tech font-bold text-white">{systemData.cpu.usage}%</div>
+              <Progress value={systemData.cpu.usage} className="h-1 mt-2 mb-1" />
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Temperatura</span>
+                <span className="text-cyber-orange">{systemData.cpu.temperature}°C</span>
               </div>
             </CardContent>
           </Card>
-        )}
-        
-        {!isCloudwatchAvailable && (
-          <Card className="bg-blue-900/20 border border-blue-500/30 mb-6">
-            <CardContent className="py-4">
-              <div className="flex items-center gap-2">
-                <Bell size={18} className="text-blue-400" />
-                <p className="text-blue-300">
-                  CloudWatch integration is not available. Your metrics are being monitored locally only.
-                </p>
+          
+          <Card className="border-cyber-purple/30 bg-cyber-darkblue shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-tech flex items-center">
+                <svg className="mr-2 text-cyber-purple" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 14V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6C4 4.89543 4.89543 4 6 4H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M16 4H20V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14 10L20 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                GPU
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-tech font-bold text-white">{systemData.gpu.usage}%</div>
+              <Progress value={systemData.gpu.usage} className="h-1 mt-2 mb-1 bg-gray-700">
+                <div className="h-full bg-gradient-to-r from-cyber-purple to-cyber-blue rounded-full"></div>
+              </Progress>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Temperatura</span>
+                <span className="text-cyber-orange">{systemData.gpu.temperature}°C</span>
               </div>
             </CardContent>
           </Card>
-        )}
+          
+          <Card className="border-cyber-green/30 bg-cyber-darkblue shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-tech flex items-center">
+                <Wifi className="mr-2 text-cyber-green" size={16} />
+                Rede
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-tech font-bold text-white">{systemData.network.latency}ms</div>
+              <div className="flex justify-between text-xs mt-3">
+                <span className="text-gray-400">Jitter</span>
+                <span className="text-cyber-green">{systemData.network.jitter}ms</span>
+              </div>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-gray-400">Perda de pacotes</span>
+                <span className="text-cyber-green">{systemData.network.packetLoss}%</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-cyber-orange/30 bg-cyber-darkblue shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-tech flex items-center">
+                <svg className="mr-2 text-cyber-orange" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 5V19M3 5H21V19H3M3 5L9 12M3 19L9 12M21 5L15 12M21 19L15 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Memória
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-tech font-bold text-white">{systemData.memory.usage}%</div>
+              <Progress value={systemData.memory.usage} className="h-1 mt-2 mb-1 bg-gray-700">
+                <div className="h-full bg-gradient-to-r from-cyber-orange to-cyber-green rounded-full"></div>
+              </Progress>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-gray-400">Uso</span>
+                <span className="text-cyber-orange">{Math.round(16 * systemData.memory.usage / 100)} GB / 16 GB</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="network">Network Metrics</TabsTrigger>
-            <TabsTrigger value="system">System Metrics</TabsTrigger>
-            <TabsTrigger value="alerts">Alerts & Thresholds</TabsTrigger>
+        {/* Main content tabs */}
+        <Tabs defaultValue="games" className="mb-6">
+          <TabsList className="mb-4">
+            <TabsTrigger value="games" className="flex items-center">
+              <Gamepad className="mr-2" size={16} />
+              Jogos Detectados
+            </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center">
+              <Cpu className="mr-2" size={16} />
+              Otimização de Sistema
+            </TabsTrigger>
+            <TabsTrigger value="network" className="flex items-center">
+              <ArrowDownUp className="mr-2" size={16} />
+              Otimização de Rede
+            </TabsTrigger>
+            <TabsTrigger value="thermal" className="flex items-center">
+              <Thermometer className="mr-2" size={16} />
+              Gestão Térmica
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard 
-                title="Current Ping" 
-                value={ping?.current || 0} 
-                unit="ms"
-                trend={ping?.trend || "stable"}
-              />
-              <MetricCard 
-                title="Connection Jitter" 
-                value={jitter?.current || 0} 
-                unit="ms"
-                trend={jitter?.trend || "stable"}
-              />
-              <MetricCard 
-                title="Current FPS" 
-                value={fps?.current || 0} 
-                unit="fps"
-                trend={fps?.trend || "stable"}
-              />
-              <MetricCard 
-                title="CPU Usage" 
-                value={system?.cpu.usage || 0} 
-                unit="%"
-                trend={system?.cpu.trend || "stable"}
-              />
+          <TabsContent value="games">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {games.map(game => (
+                <GameCard key={game.id} game={game} />
+              ))}
             </div>
-            
-            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+          </TabsContent>
+          
+          <TabsContent value="system">
+            <OptimizationControls />
+          </TabsContent>
+          
+          <TabsContent value="network">
+            <Card className="border-cyber-blue/30 bg-cyber-darkblue shadow-lg">
               <CardHeader>
-                <CardTitle>Recent Performance</CardTitle>
-                <CardDescription>Key metrics over time</CardDescription>
+                <CardTitle>Otimização de Rede</CardTitle>
+                <CardDescription>
+                  Configure a otimização de rede para seus jogos
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={ping?.history || []}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="time" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
-                      <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
+                <p className="text-gray-400 mb-4">
+                  As configurações de rede serão implementadas em uma próxima iteração.
+                </p>
+                <Button variant="outline">Configurar</Button>
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="network" className="space-y-4">
-            {/* Network metrics visualization */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
-                <CardHeader>
-                  <CardTitle>Ping Over Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={ping?.history || []}
-                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="time" stroke="#94a3b8" />
-                        <YAxis stroke="#94a3b8" />
-                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
-                        <Area type="monotone" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
-                <CardHeader>
-                  <CardTitle>Jitter Over Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={jitter?.history || []}
-                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="time" stroke="#94a3b8" />
-                        <YAxis stroke="#94a3b8" />
-                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
-                        <Area type="monotone" dataKey="value" stroke="#f97316" fill="#f97316" fillOpacity={0.2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
+          <TabsContent value="thermal">
+            <Card className="border-cyber-orange/30 bg-cyber-darkblue shadow-lg">
               <CardHeader>
-                <CardTitle>Network Stability Analysis</CardTitle>
-                <CardDescription>Ping and jitter variance over time</CardDescription>
+                <CardTitle>Gestão Térmica</CardTitle>
+                <CardDescription>
+                  Configure os perfis térmicos para balancear performance e temperatura
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { name: "Min", ping: ping?.min || 0, jitter: jitter?.min || 0 },
-                        { name: "Avg", ping: ping?.average || 0, jitter: jitter?.average || 0 },
-                        { name: "Max", ping: ping?.max || 0, jitter: jitter?.max || 0 },
-                        { name: "Current", ping: ping?.current || 0, jitter: jitter?.current || 0 }
-                      ]}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="name" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
-                      <Bar dataKey="ping" name="Ping (ms)" fill="#3b82f6" />
-                      <Bar dataKey="jitter" name="Jitter (ms)" fill="#f97316" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="system" className="space-y-4">
-            {/* System metrics visualization */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
-                <CardHeader>
-                  <CardTitle>CPU Usage Over Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={system?.cpu.history || []}
-                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="time" stroke="#94a3b8" />
-                        <YAxis stroke="#94a3b8" />
-                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
-                        <Area type="monotone" dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-cyber-darkblue border border-cyber-blue/30">
-                <CardHeader>
-                  <CardTitle>GPU Usage Over Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={system?.gpu.history || []}
-                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="time" stroke="#94a3b8" />
-                        <YAxis stroke="#94a3b8" />
-                        <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155" }} />
-                        <Area type="monotone" dataKey="value" stroke="#d946ef" fill="#d946ef" fillOpacity={0.2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="alerts" className="space-y-4">
-            {/* Alert thresholds and settings */}
-            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Alert Thresholds</CardTitle>
-                  <Button variant="outline" size="sm">
-                    <Settings size={16} className="mr-2" />
-                    Configure
-                  </Button>
-                </div>
-                <CardDescription>Current alert threshold configuration</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <AlertThresholdCard 
-                      title="Ping" 
-                      warningThreshold={`${ALERT_THRESHOLDS.ping.warning} ms`} 
-                      criticalThreshold={`${ALERT_THRESHOLDS.ping.critical} ms`} 
-                      currentValue={`${ping?.current || 0} ms`}
-                    />
-                    <AlertThresholdCard 
-                      title="Jitter" 
-                      warningThreshold={`${ALERT_THRESHOLDS.jitter.warning} ms`} 
-                      criticalThreshold={`${ALERT_THRESHOLDS.jitter.critical} ms`} 
-                      currentValue={`${jitter?.current || 0} ms`}
-                    />
-                    <AlertThresholdCard 
-                      title="FPS" 
-                      warningThreshold={`${ALERT_THRESHOLDS.fps.warning} fps`} 
-                      criticalThreshold={`${ALERT_THRESHOLDS.fps.critical} fps`} 
-                      currentValue={`${fps?.current || 0} fps`}
-                      isLowerBad={true}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <AlertThresholdCard 
-                      title="CPU Usage" 
-                      warningThreshold={`${ALERT_THRESHOLDS.cpu.warning}%`} 
-                      criticalThreshold={`${ALERT_THRESHOLDS.cpu.critical}%`} 
-                      currentValue={`${system?.cpu.usage.toFixed(1) || 0}%`}
-                    />
-                    <AlertThresholdCard 
-                      title="GPU Usage" 
-                      warningThreshold={`${ALERT_THRESHOLDS.gpu.warning}%`} 
-                      criticalThreshold={`${ALERT_THRESHOLDS.gpu.critical}%`} 
-                      currentValue={`${system?.gpu.usage.toFixed(1) || 0}%`}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-cyber-darkblue border border-cyber-blue/30">
-              <CardHeader>
-                <CardTitle>Recent Alerts</CardTitle>
-                <CardDescription>Alert history from the last 24 hours</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="border-t border-border/30">
-                  <div className="p-4 border-b border-border/30 flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Badge className="bg-amber-500/20 text-amber-500 mr-3">Warning</Badge>
-                      <div>
-                        <p className="font-medium">High ping detected: 128ms</p>
-                        <p className="text-sm text-gray-400">Your ping is higher than recommended</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center text-gray-400 text-sm">
-                      <Clock size={14} className="mr-1" />
-                      <span>2 hours ago</span>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 border-b border-border/30 flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Badge className="bg-red-500/20 text-red-500 mr-3">Critical</Badge>
-                      <div>
-                        <p className="font-medium">CPU Usage: 92%</p>
-                        <p className="text-sm text-gray-400">CPU under heavy load</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center text-gray-400 text-sm">
-                      <Clock size={14} className="mr-1" />
-                      <span>4 hours ago</span>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 border-b border-border/30 flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Badge className="bg-amber-500/20 text-amber-500 mr-3">Warning</Badge>
-                      <div>
-                        <p className="font-medium">FPS Drop: 28 FPS</p>
-                        <p className="text-sm text-gray-400">Your game is running below recommended FPS</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center text-gray-400 text-sm">
-                      <Clock size={14} className="mr-1" />
-                      <span>6 hours ago</span>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-gray-400 mb-4">
+                  Os controles de gestão térmica serão implementados em uma próxima iteração.
+                </p>
+                <Button variant="outline">Configurar</Button>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-        
-        <div className="mt-6 flex justify-end">
-          <Button variant="outline" size="sm">
-            <Download size={16} className="mr-2" />
-            Export Monitoring Data
-          </Button>
-        </div>
       </div>
     </Layout>
-  );
-};
-
-// Helper component for metric cards
-const MetricCard = ({ title, value, unit, trend }: { 
-  title: string, 
-  value: number, 
-  unit: string,
-  trend: "up" | "down" | "stable"
-}) => {
-  return (
-    <Card className="bg-cyber-darkblue border border-cyber-blue/30">
-      <CardContent className="p-4">
-        <div className="text-sm text-gray-400">{title}</div>
-        <div className="text-2xl font-bold mt-1 flex items-center">
-          {value} <span className="text-sm ml-1">{unit}</span>
-          
-          {trend === "up" && (
-            <span className="text-red-400 text-sm ml-2">↑</span>
-          )}
-          {trend === "down" && (
-            <span className="text-green-400 text-sm ml-2">↓</span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-// Helper component for alert threshold cards
-const AlertThresholdCard = ({ 
-  title, 
-  warningThreshold, 
-  criticalThreshold,
-  currentValue,
-  isLowerBad = false // For metrics like FPS where lower is bad
-}: { 
-  title: string,
-  warningThreshold: string,
-  criticalThreshold: string,
-  currentValue: string,
-  isLowerBad?: boolean
-}) => {
-  // Extract numeric value to determine status
-  const numericValue = parseFloat(currentValue.split(' ')[0]);
-  const warningValue = parseFloat(warningThreshold.split(' ')[0]);
-  const criticalValue = parseFloat(criticalThreshold.split(' ')[0]);
-  
-  let status: "normal" | "warning" | "critical" = "normal";
-  
-  if (isLowerBad) {
-    // For metrics like FPS where lower values are bad
-    if (numericValue <= criticalValue) {
-      status = "critical";
-    } else if (numericValue <= warningValue) {
-      status = "warning";
-    }
-  } else {
-    // For metrics like ping where higher values are bad
-    if (numericValue >= criticalValue) {
-      status = "critical";
-    } else if (numericValue >= warningValue) {
-      status = "warning";
-    }
-  }
-
-  return (
-    <Card className={`
-      border 
-      ${status === "normal" ? "border-cyber-blue/30" : ""}
-      ${status === "warning" ? "border-amber-500/50 bg-amber-900/10" : ""}
-      ${status === "critical" ? "border-red-500/50 bg-red-900/10" : ""}
-    `}>
-      <CardContent className="p-3">
-        <div className="text-sm font-medium mb-2">{title}</div>
-        
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div>
-            <div className="text-gray-400">Warning</div>
-            <div className="font-mono">{warningThreshold}</div>
-          </div>
-          <div>
-            <div className="text-gray-400">Critical</div>
-            <div className="font-mono">{criticalThreshold}</div>
-          </div>
-        </div>
-        
-        <div className="mt-3 pt-3 border-t border-border/30">
-          <div className="text-gray-400 text-xs">Current Value</div>
-          <div className={`
-            font-bold text-lg
-            ${status === "normal" ? "text-green-400" : ""}
-            ${status === "warning" ? "text-amber-400" : ""}
-            ${status === "critical" ? "text-red-400" : ""}
-          `}>
-            {currentValue}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 

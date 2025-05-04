@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => ({
     'process.env.NODE_ENV': JSON.stringify(mode),
   },
   server: {
-    // Using serverConfig which already contains port configuration
+    port: 8080, // Explicitly set port to 8080
     ...serverConfig
   }
 }));

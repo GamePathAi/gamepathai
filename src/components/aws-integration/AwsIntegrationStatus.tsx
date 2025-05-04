@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { useAwsIntegration } from "@/hooks/useAwsIntegration";
 import { useHardwareMonitoring } from "@/hooks/useHardwareMonitoring";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Server, AlertTriangle, Check } from "lucide-react";
+import { RefreshCw, Server, AlertTriangle, Check, Cloud } from "lucide-react";
 import { toast } from "sonner";
 
 const AwsIntegrationStatus: React.FC = () => {
@@ -21,22 +21,26 @@ const AwsIntegrationStatus: React.FC = () => {
   }, []);
   
   const handleTestConnection = async () => {
+    toast.info("Verificando conexão com AWS", {
+      description: "Testando conectividade com o backend GamePath AI"
+    });
+    
     const connected = await checkConnection();
     if (connected) {
-      toast.success("AWS Backend Connected", {
-        description: "Successfully connected to GamePath AI backend"
+      toast.success("AWS Backend Conectado", {
+        description: "Conexão com o backend GamePath AI estabelecida com sucesso"
       });
     } else {
-      toast.error("AWS Backend Unreachable", {
-        description: "Could not connect to GamePath AI backend"
+      toast.error("AWS Backend Inacessível", {
+        description: "Não foi possível conectar ao backend GamePath AI. As funções online podem estar indisponíveis."
       });
     }
   };
   
   const handleDetectGames = async () => {
     try {
-      toast.info("Scanning for games", {
-        description: "Please wait while we scan your system for games"
+      toast.info("Escaneando jogos", {
+        description: "Por favor aguarde enquanto escaneamos seu sistema procurando jogos"
       });
       
       if (window.electron) {
@@ -46,12 +50,12 @@ const AwsIntegrationStatus: React.FC = () => {
           // Report detected games to backend
           await services.games.registerDetectedGames(games);
           
-          toast.success("Games Detected", {
-            description: `Found ${games.length} games on your system`
+          toast.success("Jogos Detectados", {
+            description: `Encontramos ${games.length} jogos no seu sistema`
           });
         } else {
-          toast.info("No Games Found", {
-            description: "No games were detected on your system"
+          toast.info("Nenhum Jogo Encontrado", {
+            description: "Nenhum jogo foi detectado em seu sistema"
           });
         }
       } else {
@@ -59,45 +63,51 @@ const AwsIntegrationStatus: React.FC = () => {
         const result = await services.games.detectGames();
         
         if (result.success) {
-          toast.success("Game Detection Initiated", {
-            description: "The backend will scan for games on your system"
+          toast.success("Detecção de Jogos Iniciada", {
+            description: "O backend irá escanear seu sistema procurando jogos"
           });
         } else {
-          toast.error("Game Detection Failed", {
-            description: result.message || "Could not start game detection"
+          toast.error("Detecção de Jogos Falhou", {
+            description: result.message || "Não foi possível iniciar a detecção de jogos"
           });
         }
       }
     } catch (err) {
       console.error("Game detection error:", err);
-      toast.error("Game Detection Failed", {
-        description: "An error occurred while detecting games"
+      toast.error("Detecção de Jogos Falhou", {
+        description: "Ocorreu um erro durante a detecção de jogos"
       });
     }
   };
 
   return (
     <div className="p-4 bg-cyber-darkblue border border-cyber-blue/30 rounded-lg">
-      <h2 className="text-lg font-tech mb-4">AWS Backend Integration</h2>
+      <h2 className="text-lg font-tech mb-4 flex items-center gap-2">
+        <Cloud size={20} className="text-cyber-blue" />
+        Integração AWS
+      </h2>
       
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Server size={18} className="text-cyber-blue" />
-            <span>Backend Connection:</span>
+            <span>Status da Conexão:</span>
           </div>
           
           {isLoading ? (
-            <span className="text-gray-400">Checking...</span>
+            <span className="text-gray-400 flex items-center gap-1">
+              <RefreshCw size={14} className="animate-spin" />
+              Verificando...
+            </span>
           ) : isConnected ? (
             <div className="flex items-center gap-1 text-cyber-green">
               <Check size={16} />
-              <span>Connected</span>
+              <span>Conectado</span>
             </div>
           ) : (
             <div className="flex items-center gap-1 text-cyber-red">
               <AlertTriangle size={16} />
-              <span>Disconnected</span>
+              <span>Desconectado</span>
             </div>
           )}
         </div>
@@ -105,12 +115,19 @@ const AwsIntegrationStatus: React.FC = () => {
         {error && (
           <div className="p-2 bg-cyber-red/10 border border-cyber-red/30 rounded text-cyber-red text-sm">
             {error}
+            <p className="text-xs mt-1 text-gray-400">Verifique sua conexão com a internet e se os serviços AWS estão disponíveis.</p>
+          </div>
+        )}
+        
+        {!isConnected && !isLoading && (
+          <div className="p-2 bg-yellow-800/20 border border-yellow-600/30 rounded">
+            <p className="text-yellow-300 text-sm">As funções que requerem o backend AWS estão indisponíveis. Algumas funcionalidades podem não funcionar corretamente.</p>
           </div>
         )}
         
         {hardwareData && isConnected && (
           <div className="p-2 bg-cyber-green/10 border border-cyber-green/30 rounded">
-            <div className="text-xs text-gray-400 mb-1">Reporting system metrics:</div>
+            <div className="text-xs text-gray-400 mb-1">Reportando métricas do sistema:</div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>CPU: {hardwareData.cpu.usage.toFixed(1)}%</div>
               <div>RAM: {hardwareData.memory.usage.toFixed(1)}%</div>
@@ -130,7 +147,7 @@ const AwsIntegrationStatus: React.FC = () => {
             disabled={isLoading}
           >
             <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
-            Test Connection
+            Testar Conexão
           </Button>
           
           <Button
@@ -140,7 +157,7 @@ const AwsIntegrationStatus: React.FC = () => {
             onClick={handleDetectGames}
             disabled={!isConnected}
           >
-            Detect Games
+            Detectar Jogos
           </Button>
         </div>
       </div>

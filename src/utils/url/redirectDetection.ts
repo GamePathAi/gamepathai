@@ -1,3 +1,4 @@
+
 /**
  * Redirect detection utilities
  */
@@ -25,55 +26,96 @@ export const validateMlEndpoint = (endpoint: string): boolean => {
 };
 
 /**
+ * Check if a URL is from a trusted domain
+ * This function helps distinguish between legitimate and suspicious domains
+ */
+export const isTrustedDomain = (url: string): boolean => {
+  // Always trust relative URLs
+  if (url.startsWith('/') || url.startsWith('#')) {
+    return true;
+  }
+  
+  try {
+    // For absolute URLs, check if it's a trusted domain
+    if (url.includes('http')) {
+      const urlObj = new URL(url);
+      
+      // List of trusted domains
+      const trustedDomains = [
+        'localhost',
+        '127.0.0.1',
+        'gamepathai-dev-lb-1728469102.us-east-1.elb.amazonaws.com',
+        'gamepathai-dev-backup.us-east-1.elb.amazonaws.com',
+        'js.stripe.com',
+        'api.stripe.com',
+        'fonts.googleapis.com',
+        'fonts.gstatic.com'
+      ];
+      
+      // Check if the hostname is in the trusted domains list
+      return trustedDomains.some(domain => urlObj.hostname.includes(domain));
+    }
+  } catch (e) {
+    // If we can't parse the URL, assume it's not trusted
+    console.warn('Could not parse URL for trust check:', url);
+    return false;
+  }
+  
+  // Default to trusting relative URLs and URLs without protocol
+  return !url.includes('http');
+};
+
+/**
  * Detect potential redirect attempts in URLs
- * ENHANCED: Special protection for ML endpoints and development exclusions
+ * IMPROVED: Uses allow-list approach for trusted domains
  */
 export const detectRedirectAttempt = (url: string, isMlOperation = false): boolean => {
   // Check if we're in development mode
   const isDevelopment = process.env.NODE_ENV === 'development';
   
-  // MODIFICADO: Permitir URLs absolutas dentro do mesmo domínio em desenvolvimento
+  // In development mode, be more permissive
   if (isDevelopment) {
-    // In development, allow absolute URLs that point to the current domain
-    if (typeof window !== 'undefined') {
-      const currentDomain = window.location.hostname;
-      if (url.includes(currentDomain)) {
-        return false;  // Allow URLs from current domain
-      }
+    // Only block very obvious malicious URLs even in development
+    const obviouslyMalicious = url.includes('gamepathai.com') && 
+                              (url.includes('redirect=') || 
+                               url.includes('php?url='));
+                               
+    if (obviouslyMalicious) {
+      console.warn('🔍 Blocked suspicious URL even in development:', url);
+      return true;
     }
     
-    // Also allow localhost URLs in development
-    if (url.includes('localhost')) {
-      return false;
-    }
+    // In development mode, allow most URLs
+    return false;
   }
   
-  // NOVO: Verificar se o URL já é um proxy local, que não precisa ser bloqueado
+  // Check if it's a local API call, which is always safe
   if ((url.startsWith('/api') || url.startsWith('/ml')) && 
       !url.includes('http:') && !url.includes('https:')) {
     return false; // Local API calls are safe
   }
   
-  // Check for obvious malicious patterns - keep these for security
-  const suspicious = url.includes('gamepathai.com') && !isDevelopment || 
+  // Check for obviously malicious patterns
+  const suspicious = url.includes('gamepathai.com') || 
                     url.includes('redirect=') ||
                     url.includes('php?url=') ||
                     url.includes('?url=') ||
                     url.includes('&url=');
   
-  // MODIFICADO: Special extra checks for ML operations which are more sensitive
+  // Extra checks for ML operations which are more sensitive
   const mlSuspicious = isMlOperation && (
-    (!isDevelopment && url.includes('localhost')) ||
     (!url.includes('/api/ml/') && !url.includes('/ml/') && url.includes('/ml'))
   );
   
+  // If it's suspicious, check if it's from a trusted domain before blocking
   if (suspicious || mlSuspicious) {
-    if (isDevelopment) {
-      // In development, log but allow more URLs
-      console.log('⚠️ Permitindo URL que seria bloqueado em produção:', url);
-      return false; // Allow in development for easier testing
+    // If it's a trusted domain, allow it despite suspicious patterns
+    if (isTrustedDomain(url)) {
+      console.log('✅ Allowing URL from trusted domain despite suspicious patterns:', url);
+      return false;
     }
     
+    // Log different messages based on context
     if (isMlOperation) {
       console.error('🚨 POTENTIAL ML REDIRECT DETECTED:', url);
     } else {

@@ -3,7 +3,7 @@
  * Fetch interceptor for preventing unwanted redirects
  */
 
-import { detectRedirectAttempt, sanitizeApiUrl } from '../url';
+import { detectRedirectAttempt, sanitizeApiUrl, isTrustedDomain } from '../url';
 
 /**
  * Intercepts fetch to prevent unwanted redirects
@@ -22,28 +22,37 @@ export const setupFetchInterceptor = (): void => {
       typeof init.headers === 'object' &&
       ('X-ML-Operation' in init.headers);
       
-    // Sanitize URLs to ensure they're handled properly - use relative URLs whenever possible
-    let url = originalUrl;
-    
-    // Always use relative URLs for health checks and API calls
-    if (originalUrl.includes('gamepathai-dev-lb-1728469102.us-east-1.elb.amazonaws.com') || 
-        originalUrl.includes('/health') ||
-        originalUrl.includes('/api/')) {
-        
-      // Extract the path part from absolute URLs
-      if (originalUrl.includes('http')) {
-        try {
-          const urlObj = new URL(originalUrl);
-          url = urlObj.pathname + urlObj.search;
-          console.log('✅ Converted absolute URL to relative:', originalUrl, '->', url);
-        } catch (e) {
-          url = originalUrl;
-        }
+    // Allow local health checks and API calls to proceed without modification
+    if (originalUrl === '/health' || 
+        originalUrl.startsWith('/api/') || 
+        originalUrl.startsWith('/ml/')) {
+      console.log('✅ Local API call proceeding normally:', originalUrl);
+      
+      // Add safety headers but don't modify the URL
+      const enhancedInit: RequestInit = {
+        ...init || {},
+        headers: {
+          ...init?.headers || {},
+          "X-No-Redirect": "1",
+          "X-Requested-With": "XMLHttpRequest",
+          "Cache-Control": "no-cache, no-store",
+          "Pragma": "no-cache"
+        },
+        mode: 'cors',
+        credentials: 'include',
+        cache: 'no-store'
+      };
+      
+      // In production use error for redirect, in development allow following
+      if (!isDevelopment) {
+        enhancedInit.redirect = 'error';
       }
-    } else {
-      // For non-API URLs, just sanitize
-      url = sanitizeApiUrl(originalUrl);
+      
+      return originalFetch(originalUrl, enhancedInit);
     }
+    
+    // For non-local URLs, apply sanitization
+    let url = sanitizeApiUrl(originalUrl);
     
     if (isMLOperation) {
       console.log('🧠 ML Fetch request to:', url);
@@ -52,12 +61,17 @@ export const setupFetchInterceptor = (): void => {
     }
     
     // Check for suspicious URLs that might be redirects
-    if (detectRedirectAttempt(url)) {
+    const isSuspicious = detectRedirectAttempt(url);
+    
+    // If the URL is suspicious but from a trusted domain, allow it to proceed
+    if (isSuspicious && isTrustedDomain(url)) {
+      console.log('✅ Allowing trusted domain despite suspicious patterns:', url);
+    } else if (isSuspicious) {
       console.error('🚨 Blocked suspicious URL:', url);
       throw new Error('Blocked potential redirect URL: ' + url);
     }
     
-    // Always add no-redirect headers to all requests
+    // Always add safety headers to all requests
     const enhancedInit: RequestInit = {
       ...init || {},
       headers: {
@@ -69,26 +83,33 @@ export const setupFetchInterceptor = (): void => {
       },
       mode: 'cors',
       credentials: 'include',
-      cache: 'no-store',
-      redirect: 'error'  // Error on redirects instead of following them
+      cache: 'no-store'
     };
+    
+    // In development, allow redirects to be followed
+    // In production, error on redirects
+    enhancedInit.redirect = isDevelopment ? 'follow' : 'error';
     
     try {
       const response = await originalFetch(url, enhancedInit);
       
       // Check if a redirect happened despite our efforts
-      if (response.url && response.url !== url && response.url.includes('gamepathai.com')) {
-        console.error('⚠️ Response URL indicates redirect to gamepathai.com:', response.url);
-        throw new Error('Detected redirect in response: ' + response.url);
+      if (response.url && response.url !== url) {
+        console.log('⚠️ Redirect occurred:', url, '->', response.url);
+        
+        // Only block gamepathai.com redirects
+        if (response.url.includes('gamepathai.com') && !isDevelopment) {
+          console.error('⚠️ Blocked redirect to gamepathai.com:', response.url);
+          throw new Error('Blocked redirect to: ' + response.url);
+        }
       }
       
       return response;
     } catch (error) {
-      if (error.name === 'TypeError' && error.message.includes('redirect')) {
-        console.error('❌ Redirect blocked:', url);
-        throw new Error(`Redirect blocked from ${url}`);
+      // Only log significant errors
+      if (!error.message.includes('Failed to fetch')) {
+        console.error('❌ Fetch error:', error);
       }
-      console.error('❌ Fetch error:', error);
       throw error;
     }
   };

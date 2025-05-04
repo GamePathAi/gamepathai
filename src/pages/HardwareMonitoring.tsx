@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import Layout from "@/components/Layout";
@@ -6,12 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import HardwareMonitor from "@/components/hardware/HardwareMonitor";
 import { useHardwareMonitoring } from "@/hooks/useHardwareMonitoring";
-import { Cpu, Thermometer, Activity, ChartBar, RefreshCw, Download, Settings } from "lucide-react";
+import { Cpu, Thermometer, Activity, ChartBar, RefreshCw, Download, Settings, Brain } from "lucide-react";
 import { HardDrive as MemoryIcon } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { LineChartComponent } from "@/components/charts/LineChartComponent";
 import { hardwareMonitoringService } from "@/services/hardware/hardwareMonitoringService";
 import { toast } from "sonner";
+import DMISStatus from "@/components/dmis/DMISStatus";
+import { useDMIS } from "@/hooks/useDMIS";
 
 // Mock game data
 const availableGames = [
@@ -26,6 +29,7 @@ const HardwareMonitoring: React.FC = () => {
   const [activeTab, setActiveTab] = useState("realtime");
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [isReportGenerating, setIsReportGenerating] = useState(false);
+  const [dmisEnabled, setDmisEnabled] = useState(false);
 
   // For advanced tracking
   const {
@@ -42,6 +46,14 @@ const HardwareMonitoring: React.FC = () => {
     recordHistory: true,
     gameContext: selectedGame || undefined
   });
+
+  // Initialize DMIS system
+  const {
+    status: dmisStatus,
+    isInitializing: dmisInitializing,
+    generateOptimizedSettings,
+    analyzeBottlenecks
+  } = useDMIS({ autoInitialize: dmisEnabled });
 
   useEffect(() => {
     // Start monitoring when the page loads
@@ -82,6 +94,51 @@ const HardwareMonitoring: React.FC = () => {
       a.click();
       document.body.removeChild(a);
     }, 1000);
+  };
+
+  const handleDmisAnalysis = async () => {
+    if (!data || !dmisStatus.initialized || !selectedGame) {
+      toast.error("Cannot perform DMIS analysis", {
+        description: "Please select a game and ensure DMIS is initialized"
+      });
+      return;
+    }
+
+    try {
+      toast.info("Running DMIS analysis", {
+        description: "Analyzing hardware and generating optimized settings..."
+      });
+
+      // Run bottleneck analysis
+      const bottleneckAnalysis = await analyzeBottlenecks(data, selectedGame);
+
+      // Get optimized settings
+      const optimizedSettings = await generateOptimizedSettings(selectedGame, data);
+
+      // Display results
+      toast.success("DMIS analysis complete", {
+        description: `Identified ${Object.keys(bottleneckAnalysis.bottlenecks).length} potential bottlenecks`
+      });
+
+      // Show the most significant bottleneck
+      const sortedBottlenecks = Object.entries(bottleneckAnalysis.bottlenecks)
+        .sort((a, b) => b[1] - a[1]);
+      
+      if (sortedBottlenecks.length > 0 && sortedBottlenecks[0][1] > 0.5) {
+        const [component, probability] = sortedBottlenecks[0];
+        toast.info(`Primary bottleneck: ${component.toUpperCase()}`, {
+          description: `${Math.round(probability * 100)}% probability - ${bottleneckAnalysis.explanations[0] || "Limiting your performance"}`
+        });
+      }
+      
+      console.log("DMIS Bottleneck Analysis:", bottleneckAnalysis);
+      console.log("DMIS Optimized Settings:", optimizedSettings);
+    } catch (err) {
+      console.error("DMIS analysis failed:", err);
+      toast.error("DMIS analysis failed", {
+        description: err instanceof Error ? err.message : "An unknown error occurred"
+      });
+    }
   };
 
   return (
@@ -144,6 +201,18 @@ const HardwareMonitoring: React.FC = () => {
                 </>
               )}
             </Button>
+
+            {dmisStatus.initialized && (
+              <Button
+                variant="outline"
+                className="bg-cyber-darkblue border-cyber-purple/30 text-cyber-purple"
+                onClick={handleDmisAnalysis}
+                disabled={!data || !selectedGame}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                DMIS Analysis
+              </Button>
+            )}
           </div>
         </div>
 
@@ -170,6 +239,13 @@ const HardwareMonitoring: React.FC = () => {
             >
               <Settings size={16} className="mr-2" />
               Advanced Settings
+            </TabsTrigger>
+            <TabsTrigger
+              value="dmis"
+              className="font-tech data-[state=active]:bg-cyber-purple/20 data-[state=active]:text-cyber-purple"
+            >
+              <Brain size={16} className="mr-2" />
+              Meta-Intelligence
             </TabsTrigger>
           </TabsList>
 
@@ -362,9 +438,12 @@ const HardwareMonitoring: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between bg-cyber-darkblue/50 border border-cyber-blue/20 rounded-md p-3">
-                      <span>Anomaly Detection</span>
-                      <div className="w-12 h-6 bg-cyber-darkblue border border-cyber-blue/30 rounded-full p-1">
-                        <div className="w-4 h-4 bg-cyber-blue rounded-full ml-auto"></div>
+                      <span>Meta-Intelligence System</span>
+                      <div 
+                        className="w-12 h-6 bg-cyber-darkblue border border-cyber-blue/30 rounded-full p-1 cursor-pointer"
+                        onClick={() => setDmisEnabled(!dmisEnabled)}
+                      >
+                        <div className={`w-4 h-4 rounded-full transition-all ${dmisEnabled ? "bg-cyber-purple ml-auto" : "bg-gray-500"}`}></div>
                       </div>
                     </div>
 
@@ -378,6 +457,97 @@ const HardwareMonitoring: React.FC = () => {
                       <p className="text-xs text-gray-400 mt-2">
                         Last trained: 3 days ago
                       </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* DMIS tab */}
+          <TabsContent value="dmis" className="mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* DMIS Status */}
+              <div className="col-span-1">
+                <DMISStatus showControls={true} />
+              </div>
+
+              {/* DMIS Information */}
+              <Card className="cyber-panel col-span-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-tech">
+                    <Brain className="h-5 w-5 mr-2 inline-block text-cyber-purple" />
+                    About Meta-Intelligence System
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-300">
+                      The Distributed Meta-Intelligence System (DMIS) is a revolutionary approach to game optimization. 
+                      Unlike traditional systems, DMIS leverages federated learning across a network of devices to 
+                      create ever-improving optimization models specific to your hardware and games.
+                    </p>
+
+                    <div className="bg-cyber-darkblue/50 border border-cyber-purple/20 rounded p-3 space-y-2">
+                      <h3 className="text-sm font-semibold text-cyber-purple">Key Features:</h3>
+                      <ul className="space-y-1 text-sm text-gray-300">
+                        <li className="flex items-start">
+                          <div className="w-1 h-1 mt-1.5 rounded-full bg-cyber-purple mr-2"></div>
+                          <span>Federated Learning: Distributed model training while preserving privacy</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="w-1 h-1 mt-1.5 rounded-full bg-cyber-purple mr-2"></div>
+                          <span>Neural Prediction Engine: Multi-dimensional analysis of hardware and settings</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="w-1 h-1 mt-1.5 rounded-full bg-cyber-purple mr-2"></div>
+                          <span>Community Knowledge Bank: Shared optimization strategies from similar systems</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="w-1 h-1 mt-1.5 rounded-full bg-cyber-purple mr-2"></div>
+                          <span>Self-Evolution: System gets smarter with each analysis, without intervention</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-cyber-darkblue/50 border border-cyber-blue/20 rounded p-3">
+                      <h3 className="text-sm font-semibold text-cyber-blue mb-2">System Intelligence Score</h3>
+                      <p className="text-xs text-gray-400 mb-3">
+                        This measures how effectively the system is learning and optimizing. Scores improve with
+                        more usage and feedback from your specific hardware and games.
+                      </p>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Initial</span>
+                        <span>Advanced</span>
+                        <span>Expert</span>
+                      </div>
+                      <div className="h-2 bg-cyber-darkblue/80 rounded overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-cyber-blue to-cyber-purple"
+                          style={{ width: `${dmisStatus.overallScore * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="mt-2 text-xs text-center text-cyber-blue">
+                        {Math.round(dmisStatus.overallScore * 100)}% Intelligence Score
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-400">
+                      Enable the Meta-Intelligence System in the Advanced Settings tab to start
+                      benefitting from distributed learning for game optimization. The system improves
+                      with usage and contributes anonymously to the community knowledge bank.
+                    </p>
+
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-cyber-purple/30 text-cyber-purple hover:bg-cyber-purple/10"
+                        onClick={() => setActiveTab("advanced")}
+                      >
+                        <Settings className="h-3 w-3 mr-1" />
+                        Configure Settings
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

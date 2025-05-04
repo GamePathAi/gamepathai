@@ -1,140 +1,171 @@
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
 
 interface SystemInfo {
-  cpu: {
-    model: string;
-    cores: number;
-    usage: number;
-    temperature: number;
+  cpu?: {
+    model?: string;
+    cores?: number;
+    threads?: number;
   };
-  gpu: {
-    model: string;
-    vram: number;
-    usage: number;
-    temperature: number;
+  memory?: {
+    total?: number; // in GB
+    type?: string;
+    speed?: number; // in MHz
   };
-  memory: {
-    total: number;
-    free: number;
-    usage: number;
+  gpu?: {
+    model?: string;
+    vram?: number; // in GB
+    driver?: string;
   };
-  network: {
-    interfaces: string[];
-    activeInterface: string;
-    latency: number;
-    upload: number;
-    download: number;
-  };
-  os: {
-    name: string;
-    version: string;
-    arch: string;
+  os?: {
+    name?: string;
+    version?: string;
+    build?: string;
   };
 }
 
-// Generate mock system info for development
-const generateMockSystemInfo = (): SystemInfo => {
-  return {
-    cpu: {
-      model: "AMD Ryzen 7 5800X",
-      cores: 8,
-      usage: Math.floor(Math.random() * 30) + 10,
-      temperature: Math.floor(Math.random() * 20) + 40
-    },
-    gpu: {
-      model: "NVIDIA GeForce RTX 3070",
-      vram: 8,
-      usage: Math.floor(Math.random() * 40) + 20,
-      temperature: Math.floor(Math.random() * 15) + 55
-    },
-    memory: {
-      total: 32,
-      free: Math.floor(Math.random() * 10) + 10,
-      usage: Math.floor(Math.random() * 40) + 30
-    },
-    network: {
-      interfaces: ["Ethernet", "Wi-Fi"],
-      activeInterface: "Ethernet",
-      latency: Math.floor(Math.random() * 100) + 5,
-      upload: Math.floor(Math.random() * 50) + 10,
-      download: Math.floor(Math.random() * 500) + 100
-    },
-    os: {
-      name: "Windows",
-      version: "10",
-      arch: "x64"
-    }
-  };
-};
-
-export const useSystemInfo = (refreshInterval = 5000) => {
+export function useSystemInfo() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, setError] = useState<Error | null>(null);
+  
   useEffect(() => {
-    const fetchSystemInfo = async () => {
+    async function fetchSystemInfo() {
       try {
-        // Check if running in Electron
+        // First try to get info from Electron API if available
         if (window.electron) {
-          const info = await window.electron.getHardwareInfo();
-          setSystemInfo(info);
-        } else {
-          // Use mock data for browser development
-          setSystemInfo(generateMockSystemInfo());
+          // In a real implementation, this would call to electron
+          // For now, we'll just use mock data in both cases
+          const electronInfo = await getMockSystemInfo();
+          setSystemInfo(electronInfo);
+          setIsLoading(false);
+          return;
         }
-        setIsLoading(false);
-        setError(null);
-      } catch (err: any) {
-        console.error("Error fetching system info:", err);
-        setError(err.message || "Failed to fetch system info");
-        setIsLoading(false);
         
-        // Fallback to mock data on error
-        setSystemInfo(generateMockSystemInfo());
+        // Fallback to web API and browser detection
+        const webSystemInfo = await getWebSystemInfo();
+        setSystemInfo(webSystemInfo);
+      } catch (err) {
+        console.error("Error getting system info:", err);
+        setError(err instanceof Error ? err : new Error("Failed to get system info"));
+      } finally {
+        setIsLoading(false);
       }
-    };
-
-    // Initial fetch
-    fetchSystemInfo();
-    
-    // Set up interval for periodic updates
-    const intervalId = setInterval(fetchSystemInfo, refreshInterval);
-    
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [refreshInterval]);
-
-  const refreshSystemInfo = async () => {
-    setIsLoading(true);
-    try {
-      if (window.electron) {
-        const info = await window.electron.getHardwareInfo();
-        setSystemInfo(info);
-      } else {
-        setSystemInfo(generateMockSystemInfo());
-      }
-      setIsLoading(false);
-      setError(null);
-    } catch (err: any) {
-      console.error("Error refreshing system info:", err);
-      setError(err.message || "Failed to refresh system info");
-      setIsLoading(false);
-      
-      // Show an error toast
-      toast.error("Erro ao atualizar informações do sistema", {
-        description: err.message || "Não foi possível obter as informações do sistema"
-      });
     }
-  };
-
-  return {
-    systemInfo,
-    isLoading,
-    error,
-    refreshSystemInfo
-  };
-};
+    
+    fetchSystemInfo();
+  }, []);
+  
+  // A real implementation would use actual system API data
+  // This is just mock data for demonstration
+  async function getMockSystemInfo(): Promise<SystemInfo> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return {
+      cpu: {
+        model: "AMD Ryzen 7 5800X",
+        cores: 8,
+        threads: 16
+      },
+      memory: {
+        total: 32,
+        type: "DDR4",
+        speed: 3600
+      },
+      gpu: {
+        model: "NVIDIA GeForce RTX 3070",
+        vram: 8,
+        driver: "512.95"
+      },
+      os: {
+        name: "Windows",
+        version: "11",
+        build: "22H2"
+      }
+    };
+  }
+  
+  // Try to get some basic system info from web APIs
+  async function getWebSystemInfo(): Promise<SystemInfo> {
+    const info: SystemInfo = {};
+    
+    try {
+      // Get memory info
+      if (navigator.deviceMemory) {
+        info.memory = {
+          total: navigator.deviceMemory
+        };
+      }
+      
+      // Get basic CPU info
+      const cpuCores = navigator.hardwareConcurrency;
+      if (cpuCores) {
+        info.cpu = {
+          cores: cpuCores,
+          threads: cpuCores
+        };
+      }
+      
+      // Get basic OS info
+      const userAgent = navigator.userAgent;
+      info.os = {
+        name: getOSNameFromUserAgent(userAgent),
+        version: getOSVersionFromUserAgent(userAgent)
+      };
+      
+      // Try to get GPU info via WebGL
+      info.gpu = {
+        model: getGPUInfo()
+      };
+    } catch (err) {
+      console.error("Error getting web system info:", err);
+    }
+    
+    return info;
+  }
+  
+  function getOSNameFromUserAgent(ua: string): string {
+    if (ua.indexOf("Windows") !== -1) return "Windows";
+    if (ua.indexOf("Mac") !== -1) return "macOS";
+    if (ua.indexOf("Linux") !== -1) return "Linux";
+    if (ua.indexOf("Android") !== -1) return "Android";
+    if (ua.indexOf("iOS") !== -1) return "iOS";
+    return "Unknown";
+  }
+  
+  function getOSVersionFromUserAgent(ua: string): string {
+    // Very simplified version detection
+    if (ua.indexOf("Windows NT 10.0") !== -1) return "10";
+    if (ua.indexOf("Windows NT 6.3") !== -1) return "8.1";
+    if (ua.indexOf("Windows NT 6.2") !== -1) return "8";
+    if (ua.indexOf("Windows NT 6.1") !== -1) return "7";
+    if (ua.indexOf("Mac OS X") !== -1) {
+      const matches = ua.match(/Mac OS X (\d+[._]\d+)/);
+      if (matches) return matches[1].replace("_", ".");
+    }
+    return "";
+  }
+  
+  function getGPUInfo(): string {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      
+      if (!gl) {
+        return "Unknown";
+      }
+      
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (debugInfo) {
+        return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      }
+    } catch (e) {
+      console.error("Error getting GPU info:", e);
+    }
+    
+    return "Unknown";
+  }
+  
+  return { systemInfo, isLoading, error };
+}

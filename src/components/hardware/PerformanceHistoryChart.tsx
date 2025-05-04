@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AreaChartComponent } from "@/components/charts/AreaChartComponent";
 import { LineChartComponent } from "@/components/charts/LineChartComponent";
@@ -11,7 +10,7 @@ import type { HistoricalAnalysis, PerformanceHistory, PerformanceHistoryPoint } 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ChartBar, TrendingUp, TrendingDown, Cpu, Thermometer, Timer } from "lucide-react";
-import { MemoryIcon } from "lucide-react";
+import { HardDrive as MemoryIcon } from "lucide-react";
 import { formatRelativeTime } from "@/utils/dateUtils";
 
 interface PerformanceHistoryChartProps {

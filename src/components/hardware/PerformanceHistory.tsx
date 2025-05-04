@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AreaChartComponent } from "@/components/charts/AreaChartComponent";
 import { LineChartComponent } from "@/components/charts/LineChartComponent";
@@ -7,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { performanceHistoryService } from "@/services/history/performanceHistoryService";
-import { HistoricalAnalysis, PerformanceHistory, PerformanceHistoryPoint } from "@/types/history";
+import type { HistoricalAnalysis, PerformanceHistory as PerformanceHistoryType, PerformanceHistoryPoint } from "@/types/history";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { ChartBar, TrendingUp, TrendingDown, Cpu, Thermometer, Memory, Timer } from "lucide-react";
+import { ChartBar, TrendingUp, TrendingDown, Cpu, Thermometer, Timer } from "lucide-react";
+import { HardDrive as MemoryIcon } from "lucide-react";
 import { formatRelativeTime } from "@/utils/dateUtils";
 
 interface PerformanceHistoryProps {
@@ -22,7 +22,7 @@ export const PerformanceHistory: React.FC<PerformanceHistoryProps> = ({
   gameFilter,
   timeRange = 'all'
 }) => {
-  const [history, setHistory] = useState<PerformanceHistory | null>(null);
+  const [history, setHistory] = useState<PerformanceHistoryType | null>(null);
   const [analysis, setAnalysis] = useState<HistoricalAnalysis | null>(null);
   const [selectedTimeRange, setSelectedTimeRange] = useState<string>(timeRange);
   const [chartData, setChartData] = useState<PerformanceHistoryPoint[]>([]);
@@ -226,7 +226,7 @@ export const PerformanceHistory: React.FC<PerformanceHistoryProps> = ({
                   GPU
                 </TabsTrigger>
                 <TabsTrigger value="memory" className="font-tech data-[state=active]:bg-cyber-blue/20 data-[state=active]:text-cyber-blue">
-                  <Memory size={16} className="mr-2" />
+                  <MemoryIcon size={16} className="mr-2" />
                   Memory
                 </TabsTrigger>
                 <TabsTrigger value="score" className="font-tech data-[state=active]:bg-cyber-green/20 data-[state=active]:text-cyber-green">
@@ -308,7 +308,7 @@ export const PerformanceHistory: React.FC<PerformanceHistoryProps> = ({
                       <AreaChartComponent
                         data={formattedData}
                         dataKey="memUsage"
-                        xAxisKey="time"
+                        xAxisDataKey="time"
                         color="#33C3F0"
                         gradientId="memoryGradient"
                         height={250}
@@ -406,7 +406,7 @@ export const PerformanceHistory: React.FC<PerformanceHistoryProps> = ({
                         
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
-                            <Memory size={14} className="text-cyber-blue" />
+                            <MemoryIcon size={14} className="text-cyber-blue" />
                             <span className="text-sm">Memory</span>
                           </div>
                           <div className={`flex items-center gap-1 ${getStatusColor(analysis.trends.memory.usageTrend, false)}`}>

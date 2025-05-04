@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import Layout from "@/components/Layout";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import HardwareMonitor from "@/components/hardware/HardwareMonitor";
 import { useHardwareMonitoring } from "@/hooks/useHardwareMonitoring";
 import { Cpu, Thermometer, Activity, ChartBar, RefreshCw, Download, Settings } from "lucide-react";
-import { MemoryIcon } from "lucide-react";
+import { HardDrive as MemoryIcon } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { LineChartComponent } from "@/components/charts/LineChartComponent";
 import { hardwareMonitoringService } from "@/services/hardware/hardwareMonitoringService";

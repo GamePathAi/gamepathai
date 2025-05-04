@@ -8,6 +8,7 @@ interface AreaChartComponentProps {
   height?: number;
   width?: string;
   xAxisDataKey?: string;
+  xAxisKey?: string; // Add alias for compatibility
   yAxisDomain?: [number, number];
   color?: string;
   gradientId?: string;
@@ -23,6 +24,7 @@ export const AreaChartComponent: React.FC<AreaChartComponentProps> = ({
   height = 64,
   width = "100%",
   xAxisDataKey = "name",
+  xAxisKey, // Add support for the alias
   yAxisDomain = [0, 100],
   color = "#8b5cf6",
   gradientId = "colorGradient",
@@ -31,6 +33,9 @@ export const AreaChartComponent: React.FC<AreaChartComponentProps> = ({
   xAxisHide = false,
   yAxisHide = false,
 }) => {
+  // Use xAxisKey as a fallback if provided
+  const effectiveXAxisKey = xAxisDataKey || xAxisKey || "name";
+  
   // Enforce maximum height to prevent excessive growth
   const effectiveHeight = Math.min(height, 180);
 
@@ -47,7 +52,7 @@ export const AreaChartComponent: React.FC<AreaChartComponentProps> = ({
           }}
         >
           <XAxis 
-            dataKey={xAxisDataKey} 
+            dataKey={effectiveXAxisKey}
             stroke="#6b7280" 
             hide={xAxisHide}
             tick={{ fill: "#6b7280", fontSize: 10 }}

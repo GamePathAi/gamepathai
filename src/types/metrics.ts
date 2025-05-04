@@ -58,6 +58,44 @@ export interface OptimizationResult {
   timestamp: Date;
 }
 
+export interface HardwareData {
+  cpu: {
+    usage: number;
+    temperature?: number;
+    cores?: number[];
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+    usage: number;
+  };
+  gpu?: {
+    usage: number;
+    temperature?: number;
+    memoryTotal?: number;
+    memoryUsed?: number;
+  };
+  network?: {
+    download: number;
+    upload: number;
+    interfaces?: Record<string, {
+      address: string;
+      download: number;
+      upload: number;
+    }>;
+  };
+  disk?: {
+    total: number;
+    used: number;
+    free: number;
+    usage: number;
+    readSpeed?: number;
+    writeSpeed?: number;
+  };
+  timestamp: number;
+}
+
 export interface ElectronHardwareData {
   cpu: {
     usage: number;

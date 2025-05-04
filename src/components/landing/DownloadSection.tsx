@@ -46,21 +46,30 @@ const DownloadSection: React.FC = () => {
 
   const handleDownload = (os: 'windows' | 'mac' | 'linux') => {
     // In a real implementation, this would track the download event
-    // and then redirect to the actual file
     console.log(`Starting download for ${os} version`);
     toast.success(`Starting download for ${os.charAt(0).toUpperCase() + os.slice(1)}`);
     
-    // Use a direct link instead of redirect
-    const downloadUrl = downloads[os].url;
-    
-    // Create a temporary anchor element to trigger download
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.setAttribute('download', '');
-    link.setAttribute('target', '_blank');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // Use a direct link instead of redirect
+      const downloadUrl = downloads[os].url;
+      
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', '');
+      link.setAttribute('target', '_blank');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Show additional installation instructions toast after a short delay
+      setTimeout(() => {
+        toast.info(`After download completes, run the installer to set up GamePath AI for ${os.charAt(0).toUpperCase() + os.slice(1)}.`);
+      }, 3000);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error(`There was a problem with the download. Please try again later.`);
+    }
   };
 
   const getOSIcon = (os: 'windows' | 'mac' | 'linux' | 'unknown') => {

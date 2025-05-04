@@ -4,11 +4,13 @@ import { usePermissions } from "@/contexts/PermissionsContext";
 import { useTranslation } from "react-i18next";
 import { hardwareMonitoringService } from "@/services/hardware/hardwareMonitoringService";
 import { HardwareData } from "@/types/metrics";
+import { hardwareMonitoringUtils } from "@/utils/hardwareMonitoringUtils";
 
 interface HardwareMonitoringOptions {
   interval?: number;
   onError?: (error: Error) => void;
   reportToCloud?: boolean;
+  enableAnalysis?: boolean;
 }
 
 export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) => {
@@ -18,10 +20,20 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
   const [data, setData] = useState<HardwareData | null>(null);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [analysis, setAnalysis] = useState<{
+    issues: Array<{ component: string; issue: string; severity: 'warning' | 'critical' | 'info' }>;
+    suggestions: string[];
+  } | null>(null);
+  const [performanceScore, setPerformanceScore] = useState<{
+    score: number;
+    category: 'excellent' | 'good' | 'fair' | 'poor';
+    bottlenecks: string[];
+  } | null>(null);
   
   const defaultOptions = {
     interval: 2000, // 2 seconds
     reportToCloud: false,
+    enableAnalysis: true,
     ...options
   };
   
@@ -31,10 +43,23 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
     if (options.onError) options.onError(err);
   }, [options]);
   
-  // Function to handle data updates
+  // Function to handle data updates with analysis
   const handleDataUpdate = useCallback((newData: HardwareData) => {
     setData(newData);
-  }, []);
+    
+    // Perform analysis if enabled
+    if (defaultOptions.enableAnalysis) {
+      const newAnalysis = hardwareMonitoringUtils.analyzeHardwareData(newData);
+      setAnalysis(newAnalysis);
+      
+      // Show notification for critical issues
+      hardwareMonitoringUtils.notifyAboutIssues(newAnalysis.issues);
+      
+      // Calculate performance score
+      const score = calculatePerformanceScore(newData);
+      setPerformanceScore(score);
+    }
+  }, [defaultOptions.enableAnalysis]);
   
   // Function to start monitoring
   const startMonitoring = useCallback(async () => {
@@ -78,6 +103,12 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
     return result;
   }, [handleError]);
   
+  // Generate performance report
+  const generatePerformanceReport = useCallback(() => {
+    if (!data) return "";
+    return hardwareMonitoringUtils.createPerformanceReport(data);
+  }, [data]);
+  
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -91,7 +122,13 @@ export const useHardwareMonitoring = (options: HardwareMonitoringOptions = {}) =
     data,
     isMonitoring,
     error,
+    analysis,
+    performanceScore,
     startMonitoring,
-    stopMonitoring
+    stopMonitoring,
+    generatePerformanceReport
   };
 };
+
+// Import the calculatePerformanceScore function from utils
+import { calculatePerformanceScore } from "@/utils/hardwareMonitoringUtils";

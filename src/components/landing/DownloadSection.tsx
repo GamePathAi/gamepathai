@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Download, Monitor, Apple } from "lucide-react";
+import { Download, Monitor, Apple, Linux } from "lucide-react";
 import { toast } from "sonner";
 
 interface DownloadInfo {
@@ -47,25 +47,33 @@ const DownloadSection: React.FC = () => {
   const handleDownload = (os: 'windows' | 'mac' | 'linux') => {
     // In a real implementation, this would track the download event
     // and then redirect to the actual file
+    console.log(`Starting download for ${os} version`);
     toast.success(`Starting download for ${os.charAt(0).toUpperCase() + os.slice(1)}`);
     
-    // Simulate download start
-    setTimeout(() => {
-      window.location.href = downloads[os].url;
-    }, 500);
+    // Use a direct link instead of redirect
+    const downloadUrl = downloads[os].url;
+    
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', '');
+    link.setAttribute('target', '_blank');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const getOSIcon = (os: 'windows' | 'mac' | 'linux' | 'unknown') => {
     switch(os) {
       case 'windows': return <Monitor className="mr-2" />;
       case 'mac': return <Apple className="mr-2" />;
-      case 'linux': return <Monitor className="mr-2" />;
+      case 'linux': return <Linux className="mr-2" />;
       default: return <Download className="mr-2" />;
     }
   };
 
   return (
-    <section className="py-24 bg-cyber-dark relative">
+    <section className="py-24 bg-cyber-dark relative" id="download-section">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 font-tech">

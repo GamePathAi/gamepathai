@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 const HeroSection: React.FC = () => {
+  const scrollToDownload = () => {
+    const downloadSection = document.getElementById('download-section');
+    if (downloadSection) {
+      downloadSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section className="py-20 md:py-32 relative overflow-hidden">
       <div className="absolute inset-0 bg-cyber-grid opacity-20 z-0"></div>
@@ -22,12 +29,15 @@ const HeroSection: React.FC = () => {
               improve FPS, and provide a secure, optimized connection for all your games.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/download">
-                <Button variant="cyberAction" size="lg" className="shadow-lg">
-                  Download GamePath AI
-                  <ArrowDown className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              <Button 
+                variant="cyberAction" 
+                size="lg" 
+                className="shadow-lg"
+                onClick={scrollToDownload}
+              >
+                Download GamePath AI
+                <ArrowDown className="ml-2 h-5 w-5" />
+              </Button>
               <Link to="/dashboard">
                 <Button variant="cyberOutline" size="lg">
                   Access Dashboard

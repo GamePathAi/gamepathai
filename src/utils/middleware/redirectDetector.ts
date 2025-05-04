@@ -11,6 +11,19 @@ import { detectRedirectAttempt, sanitizeApiUrl } from '../url';
 export const setupRedirectDetector = (): void => {
   if (typeof window === 'undefined') return;
   
+  // Allow internal navigation to routes like /download
+  const allowNavigation = (url: string): boolean => {
+    // If it's a relative URL or points to the current domain, allow it
+    if (url.startsWith('/') || 
+        url.startsWith('#') || 
+        url.includes(window.location.hostname)) {
+      return true;
+    }
+    // Check for allowed external domains (add more as needed)
+    const allowedDomains = ['localhost', '127.0.0.1'];
+    return allowedDomains.some(domain => url.includes(domain));
+  };
+  
   // Monitor for script injections that might cause redirects
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
@@ -32,10 +45,10 @@ export const setupRedirectDetector = (): void => {
     subtree: true
   });
   
-  // Monitor navigation events
+  // Monitor navigation events but allow internal routes
   window.addEventListener('beforeunload', (event) => {
     const currentUrl = window.location.href;
-    if (detectRedirectAttempt(currentUrl)) {
+    if (detectRedirectAttempt(currentUrl) && !allowNavigation(currentUrl)) {
       event.preventDefault();
       console.error('⛔ Blocked navigation to suspicious URL:', currentUrl);
       return event.returnValue = 'Are you sure you want to leave?';

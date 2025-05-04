@@ -16,6 +16,7 @@ import "@fontsource/inter/700.css";  // Fonte bold
 import "./lib/i18n.ts";
 import { CheckoutProvider } from "./contexts/CheckoutContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { OnboardingProvider } from "./contexts/OnboardingContext";
 import { initializeApp } from "./utils/appInitializer";
 import { periodicCleanup } from "./utils/cspHelper";
 
@@ -46,7 +47,9 @@ createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <CheckoutProvider>
-            <App />
+            <OnboardingProvider>
+              <App />
+            </OnboardingProvider>
           </CheckoutProvider>
         </AuthProvider>
       </QueryClientProvider>

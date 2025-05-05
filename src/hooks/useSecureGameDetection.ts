@@ -11,7 +11,8 @@ export interface Game {
   path: string;
   platform: string;
   lastPlayed: number;
-  genre?: string; // Added genre as optional property to match both usages
+  genre?: string; // Optional property to match both usages
+  image?: string; // Added image as optional property
 }
 
 export const useSecureGameDetection = () => {

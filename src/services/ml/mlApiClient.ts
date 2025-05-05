@@ -81,7 +81,7 @@ export const mlApiClient = {
       try {
         // Fixed: Don't use generics with untyped function call
         return await apiCache.getOrFetch(cacheKey, async () => {
-          return await this.performFetch<T>(url, headers, options);
+          return await this.performFetch(url, headers, options);
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT
         });
@@ -92,7 +92,7 @@ export const mlApiClient = {
     }
     
     // Regular fetch without caching
-    return await this.performFetch<T>(url, headers, options);
+    return await this.performFetch(url, headers, options);
   },
   
   /**

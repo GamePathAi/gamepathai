@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gamesService } from "../services/gamesService";
 import { toast } from "sonner";
 import { generateGames } from "@/utils/mockData/gameData";
-import { mlService, MLDetectedGamesResponse, MLOptimizeGameResponse } from "@/services/ml";
+import { MLDetectedGamesResponse, MLOptimizeGameResponse } from "@/services/ml";
 
 export interface Game {
   id: string;
@@ -13,6 +13,8 @@ export interface Game {
   genre: string;
   lastPlayed: number;
   optimizationType?: "both" | "network" | "system" | "none";
+  path?: string;
+  platform?: string;
 }
 
 export function useGames() {

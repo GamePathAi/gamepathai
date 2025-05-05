@@ -75,3 +75,37 @@ export interface MLOptimizationOptions {
   aggressiveness?: 'low' | 'medium' | 'high';
   systemInfo?: any;
 }
+
+/**
+ * ML Connectivity Test Result
+ */
+export interface MLConnectivityTestResult {
+  success: boolean;
+  results: Record<string, { success: boolean; error?: string }>;
+}
+
+/**
+ * ML Redirect Protection Test Result
+ */
+export interface MLRedirectProtectionResult {
+  protected: boolean;
+  details: string;
+}
+
+/**
+ * ML Extension Check Result
+ */
+export interface MLExtensionCheckResult {
+  detected: boolean;
+  extensions: string[];
+}
+
+/**
+ * ML URL Test Result
+ */
+export interface MLUrlTestResult {
+  wasRedirected: boolean;
+  finalUrl: string;
+  isGamePathAI: boolean;
+  responseStatus?: number;
+}

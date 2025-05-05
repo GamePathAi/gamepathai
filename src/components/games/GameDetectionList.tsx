@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useSecureGameDetection } from '@/hooks/useSecureGameDetection';
-import { mlService, MLDetectedGamesResponse } from '@/services/ml';
+import { MLDetectedGamesResponse } from '@/services/ml';
 
 const GameDetectionList = () => {
   const { t } = useTranslation();
@@ -25,6 +25,7 @@ const GameDetectionList = () => {
     const fetchMlGames = async () => {
       try {
         setIsLoadingMl(true);
+        const mlService = (await import('@/services/ml/mlService')).mlService;
         const mlDetection = await mlService.detectGames();
         setMlGames(mlDetection.detectedGames);
       } catch (error) {
@@ -42,13 +43,14 @@ const GameDetectionList = () => {
   mlGames.forEach(mlGame => {
     if (!games.some(localGame => localGame.id === mlGame.id)) {
       combinedGames.push({
-        ...mlGame,
+        id: mlGame.id,
+        name: mlGame.name,
         path: mlGame.installPath || '',
         platform: 'ML Detection',
-        lastPlayed: Date.now(), // Add required lastPlayed property
-        isOptimized: false,
+        lastPlayed: Date.now(), // Required property
         genre: "Detected",
         image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(mlGame.name)}`,
+        isOptimized: false,
         optimizationType: "none"
       });
     }

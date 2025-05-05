@@ -42,7 +42,7 @@ export const isElectronMain = (): boolean => {
   return typeof process !== 'undefined' && 
     process.versions && 
     !!process.versions.electron && 
-    // FIXED: Access 'type' safely with optional chaining
+    // FIXED: Use optional chaining to access 'type' safely
     process?.type !== 'renderer';
 };
 

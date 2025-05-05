@@ -1,5 +1,6 @@
+
 import { apiClient } from "./api";
-import { mlService, MLDetectedGamesResponse, MLOptimizeGameResponse } from "./ml";
+import { MLDetectedGamesResponse, MLOptimizeGameResponse } from "./ml";
 import { Game } from "@/hooks/useGames";
 import { fixAbsoluteUrl } from "@/utils/url"; // Updated import path
 
@@ -13,6 +14,9 @@ export const gamesService = {
       console.log("⚠️ Standard API failed for games, trying ML service as fallback");
       
       try {
+        // Dynamically import mlService to avoid circular dependencies
+        const { mlService } = await import('./ml/mlService');
+        
         // Fall back to ML service for game detection
         console.log("🧠 Tentando detecção ML como fallback");
         const mlDetectedGames = await mlService.detectGames();
@@ -26,6 +30,7 @@ export const gamesService = {
             image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(game.name)}`,
             isOptimized: false,
             genre: "Detected",
+            lastPlayed: Date.now(),
             optimizationType: "none"
           }));
         } else {
@@ -94,6 +99,9 @@ export const gamesService = {
   optimizeGame: async (gameId: string): Promise<MLOptimizeGameResponse> => {
     try {
       console.log(`🧠 Tentando otimizar jogo ${gameId} via serviço ML`);
+      // Dynamically import mlService
+      const { mlService } = await import('./ml/mlService');
+      
       // MELHORADO: Usar diretamente o serviço ML com opções avançadas
       return await mlService.optimizeGame(gameId, {
         optimizeRoutes: true,

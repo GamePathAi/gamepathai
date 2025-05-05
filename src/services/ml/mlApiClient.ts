@@ -1,4 +1,3 @@
-
 /**
  * Core ML API client implementation
  * Handles basic fetch operations with ML-specific configurations
@@ -6,7 +5,6 @@
 import { sanitizeApiUrl } from "../../utils/url";
 import { reportMLIssue } from "../../utils/appInitializer";
 import { MLApiError } from "./types";
-import { apiCache } from "../../utils/api/cacheManager";
 
 // Constants
 const ML_BASE_URL = ""; // Empty string means relative URLs
@@ -20,6 +18,23 @@ const CACHE_TTL = {
   DETECTIONS: 10 * 60 * 1000,  // 10 minutes for detections
   OPTIMIZATIONS: 60 * 60 * 1000, // 1 hour for optimizations
   DEFAULT: 5 * 60 * 1000 // 5 minutes default
+};
+
+// Interface for cache options
+interface CacheOptions {
+  ttl: number;
+}
+
+// Interface for our cache manager
+interface ApiCache {
+  getOrFetch<T>(key: string, fetchFn: () => Promise<T>, options?: CacheOptions): Promise<T>;
+  clearAll(): void;
+}
+
+// Define an empty apiCache object to use as fallback
+const apiCache: ApiCache = {
+  getOrFetch: async (key, fetchFn) => fetchFn(),
+  clearAll: () => {}
 };
 
 /**
@@ -64,9 +79,9 @@ export const mlApiClient = {
       const cacheKey = `ml:${url}:${JSON.stringify(options.body || {})}`;
       
       try {
-        // Use proper Promise typing for getOrFetch
-        return await apiCache.getOrFetch<T>(cacheKey, async () => {
-          return await this.performFetch<T>(url, headers, options);
+        // Fix: Remove type parameters for untyped function calls
+        return await apiCache.getOrFetch(cacheKey, async () => {
+          return await this.performFetch(url, headers, options) as T;
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT
         });
@@ -77,7 +92,7 @@ export const mlApiClient = {
     }
     
     // Regular fetch without caching
-    return await this.performFetch<T>(url, headers, options);
+    return await this.performFetch(url, headers, options) as T;
   },
   
   /**

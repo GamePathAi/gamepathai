@@ -54,7 +54,7 @@ const GameDetectionList = () => {
         image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(mlGame.name)}`,
         isOptimized: false,
         optimizationType: "none"
-      });
+      } as Game);
     }
   });
   

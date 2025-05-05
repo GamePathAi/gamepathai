@@ -66,6 +66,7 @@ export const useGameOptimization = (game: GameType) => {
     try {
       console.log(`🎮 Starting ML optimization for game: ${game.id}`);
       
+      // Use dynamic import to prevent circular dependency
       const { mlService } = await import("@/services/ml/mlService");
       
       const optimizationOptions = {

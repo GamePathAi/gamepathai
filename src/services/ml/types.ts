@@ -81,6 +81,7 @@ export interface MLOptimizationOptions {
  */
 export interface MLConnectivityTestResult {
   success: boolean;
+  health?: boolean;
   results: Record<string, { success: boolean; error?: string }>;
 }
 

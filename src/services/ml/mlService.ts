@@ -9,7 +9,8 @@ import {
   MLPerformancePredictorResponse, 
   MLDetectedGamesResponse, 
   MLOptimizeGameResponse,
-  MLOptimizationOptions
+  MLOptimizationOptions,
+  MLConnectivityTestResult
 } from './types';
 import { mlDiagnostics } from './mlDiagnostics';
 import { CACHE_TTL } from './mlCacheManager';
@@ -26,7 +27,7 @@ export const mlService = {
     aggressiveness?: 'low' | 'medium' | 'high'
   } = {}): Promise<MLRouteOptimizerResponse> => {
     try {
-      return await mlApiClient.withRetry(
+      return await mlApiClient.withRetry<MLRouteOptimizerResponse>(
         `/ml/route-optimizer/${gameId}`,
         {
           method: 'POST',
@@ -48,7 +49,7 @@ export const mlService = {
    */
   predictPerformance: async (gameId: string, systemSpecs: any): Promise<MLPerformancePredictorResponse> => {
     try {
-      return await mlApiClient.withRetry(
+      return await mlApiClient.withRetry<MLPerformancePredictorResponse>(
         `/ml/performance-predictor/${gameId}`,
         {
           method: 'POST',
@@ -70,7 +71,7 @@ export const mlService = {
    */
   detectGames: async (): Promise<MLDetectedGamesResponse> => {
     try {
-      return await mlApiClient.withRetry(
+      return await mlApiClient.withRetry<MLDetectedGamesResponse>(
         '/ml/game-detection',
         { 
           method: 'GET',
@@ -106,7 +107,7 @@ export const mlService = {
     try {
       toast.loading(`Otimizando ${gameId}...`);
       
-      const result = await mlApiClient.withRetry(
+      const result = await mlApiClient.withRetry<MLOptimizeGameResponse>(
         `/ml/optimize-game/${gameId}`,
         {
           method: 'POST',
@@ -127,6 +128,8 @@ export const mlService = {
       toast.error("Falha na otimização do jogo", {
         description: `Não foi possível otimizar o jogo ${gameId}`
       });
+      
+      // FIX: Return properly typed error response instead of empty object
       throw error;
     }
   },
@@ -150,7 +153,7 @@ export const mlService = {
       const results = await mlDiagnostics.runDiagnostics();
       
       toast.success("Diagnósticos concluídos", {
-        description: `Conectividade ML: ${results.health ? 'OK' : 'Falha'}`
+        description: `Conectividade ML: ${results.success ? 'OK' : 'Falha'}`
       });
       
       return results;

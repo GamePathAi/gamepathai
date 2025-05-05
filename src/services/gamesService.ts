@@ -1,4 +1,3 @@
-
 import { apiClient } from "./api";
 import { mlService, MLDetectedGamesResponse, MLOptimizeGameResponse } from "./ml";
 import { Game } from "@/hooks/useGames";
@@ -123,7 +122,6 @@ export const gamesService = {
         console.log("⚠️ Retornando resposta simulada de otimização");
         return {
           success: true,
-          // FIXED: Add missing gameId property to match MLOptimizeGameResponse type
           gameId: gameId,
           optimizationType: "both", 
           improvements: {

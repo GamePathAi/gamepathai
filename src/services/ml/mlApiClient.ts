@@ -1,3 +1,4 @@
+
 /**
  * Core ML API client implementation
  * Handles basic fetch operations with ML-specific configurations
@@ -63,8 +64,8 @@ export const mlApiClient = {
       const cacheKey = `ml:${url}:${JSON.stringify(options.body || {})}`;
       
       try {
-        // FIXED: Use proper type annotation for apiCache.getOrFetch
-        return await apiCache.getOrFetch(cacheKey, async () => {
+        // Use proper Promise typing for getOrFetch
+        return await apiCache.getOrFetch<T>(cacheKey, async () => {
           return await this.performFetch<T>(url, headers, options);
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT

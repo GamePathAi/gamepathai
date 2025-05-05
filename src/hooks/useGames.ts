@@ -11,6 +11,7 @@ export interface Game {
   image: string;
   isOptimized: boolean;
   genre: string;
+  lastPlayed: number;
   optimizationType?: "both" | "network" | "system" | "none";
 }
 
@@ -37,6 +38,7 @@ export function useGames() {
               image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(game.name)}`,
               isOptimized: false,
               genre: "Detected",
+              lastPlayed: Date.now(),
               optimizationType: "none"
             }));
           }

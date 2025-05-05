@@ -1,3 +1,4 @@
+
 /**
  * Environment detection utilities for handling different modes
  */

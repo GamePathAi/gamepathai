@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, RefreshCw, AlertCircle, Check } from 'lucide-react';
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useSecureGameDetection } from '@/hooks/useSecureGameDetection';
-import { MLDetectedGamesResponse, mlService } from '@/services/ml/mlService';
+import { mlService, MLDetectedGamesResponse } from '@/services/ml';
 
 const GameDetectionList = () => {
   const { t } = useTranslation();
@@ -46,8 +45,11 @@ const GameDetectionList = () => {
         ...mlGame,
         path: mlGame.installPath || '',
         platform: 'ML Detection',
-        // FIXED: Add missing lastPlayed property required by Game type
-        lastPlayed: Date.now() // Default to current timestamp
+        lastPlayed: Date.now(), // Add required lastPlayed property
+        isOptimized: false,
+        genre: "Detected",
+        image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(mlGame.name)}`,
+        optimizationType: "none"
       });
     }
   });

@@ -1,10 +1,17 @@
-
 /**
  * ML service handlers for specific machine learning models
  */
-import { mlApiClient, mlDiagnostics } from './mlApiClient';
+import { mlApiClient } from './mlApiClient';
 import { apiCache } from '../../utils/api/cacheManager';
 import { toast } from "sonner";
+import { 
+  MLRouteOptimizerResponse, 
+  MLPerformancePredictorResponse, 
+  MLDetectedGamesResponse, 
+  MLOptimizeGameResponse,
+  MLOptimizationOptions
+} from './types';
+import { mlDiagnostics } from './mlApiClient';
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -13,52 +20,6 @@ const CACHE_TTL = {
   GAMES: 15 * 60 * 1000,       // 15 min for game detection
   OPTIMIZE: 60 * 60 * 1000     // 1 hour for game optimization
 };
-
-/**
- * Type definitions for ML responses
- */
-export interface MLRouteOptimizerResponse {
-  success: boolean;
-  routes: {
-    optimized: boolean;
-    latencyReduction: number;
-    stabilityImprovement: number;
-    recommendations: string[];
-  };
-}
-
-export interface MLPerformancePredictorResponse {
-  success: boolean;
-  predictions: {
-    fps: number;
-    stability: number;
-    recommendations: {
-      settings: Record<string, any>;
-      priority: 'high' | 'medium' | 'low';
-    }[];
-  };
-}
-
-export interface MLDetectedGamesResponse {
-  success: boolean;
-  detectedGames: Array<{
-    id: string;
-    name: string;
-    executable: string;
-    installPath?: string;
-  }>;
-}
-
-export interface MLOptimizeGameResponse {
-  success: boolean;
-  gameId: string;
-  optimizationType: "network" | "system" | "both" | "none";
-  improvements?: {
-    latency?: number;
-    fps?: number;
-    stability?: number;
-  };
-}
 
 /**
  * ML service handlers for specific machine learning models
@@ -136,13 +97,7 @@ export const mlService = {
   /**
    * Optimize a specific game using ML recommendations
    */
-  optimizeGame: async (gameId: string, options: {
-    optimizeRoutes?: boolean,
-    optimizeSettings?: boolean,
-    optimizeSystem?: boolean,
-    aggressiveness?: 'low' | 'medium' | 'high',
-    systemInfo?: any
-  } = {}): Promise<MLOptimizeGameResponse> => {
+  optimizeGame: async (gameId: string, options: MLOptimizationOptions = {}): Promise<MLOptimizeGameResponse> => {
     // Default all options to true if not specified
     const finalOptions = {
       optimizeRoutes: true,
@@ -217,5 +172,5 @@ export const mlService = {
   }
 };
 
-// Export diagnostics
+// Re-export mlDiagnostics
 export { mlDiagnostics };

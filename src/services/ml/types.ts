@@ -1,16 +1,13 @@
 
 /**
- * Type definitions for ML API
+ * Type definitions for ML API responses and options
  */
 
-/**
- * ML API Error response
- */
 export interface MLApiError {
   status: string | number;
   message: string;
-  details?: string;
-  originalError?: any;
+  code?: string;
+  details?: any;
 }
 
 /**
@@ -18,18 +15,12 @@ export interface MLApiError {
  */
 export interface MLRouteOptimizerResponse {
   success: boolean;
-  optimizedRoutes: {
-    route: string;
-    latency: number;
-    jitter: number;
-    packetLoss: number;
-    improvement: number;
-  }[];
-  recommendations: {
-    type: string;
-    description: string;
-    impact: 'high' | 'medium' | 'low';
-  }[];
+  routes: {
+    optimized: boolean;
+    latencyReduction: number;
+    stabilityImprovement: number;
+    recommendations: string[];
+  };
 }
 
 /**
@@ -37,15 +28,13 @@ export interface MLRouteOptimizerResponse {
  */
 export interface MLPerformancePredictorResponse {
   success: boolean;
-  recommendations: {
-    setting: string;
-    currentValue: string | number;
-    recommendedValue: string | number;
-    impact: number;
-  }[];
-  expectedGains: {
+  predictions: {
     fps: number;
     stability: number;
+    recommendations: {
+      settings: Record<string, any>;
+      priority: 'high' | 'medium' | 'low';
+    }[];
   };
 }
 
@@ -53,21 +42,22 @@ export interface MLPerformancePredictorResponse {
  * ML Detected Games Response
  */
 export interface MLDetectedGamesResponse {
-  detectedGames: {
+  success: boolean;
+  detectedGames: Array<{
     id: string;
     name: string;
-    type?: string;
-    executable?: string;
+    executable: string;
     installPath?: string;
-  }[];
+  }>;
 }
 
 /**
- * ML Optimize Game Response
+ * ML Game Optimization Response
  */
 export interface MLOptimizeGameResponse {
   success: boolean;
-  optimizationType?: "network" | "system" | "both" | "none";
+  gameId: string;
+  optimizationType: "network" | "system" | "both" | "none";
   improvements?: {
     latency?: number;
     fps?: number;
@@ -76,35 +66,12 @@ export interface MLOptimizeGameResponse {
 }
 
 /**
- * ML Connectivity Test Result
+ * ML Game Optimization Options
  */
-export interface MLConnectivityTestResult {
-  success: boolean;
-  results: Record<string, { success: boolean, error?: string }>;
-}
-
-/**
- * ML Redirect Protection Result
- */
-export interface MLRedirectProtectionResult {
-  protected: boolean;
-  details: string;
-}
-
-/**
- * ML Extension Check Result
- */
-export interface MLExtensionCheckResult {
-  detected: boolean;
-  extensions: string[];
-}
-
-/**
- * ML URL Test Result
- */
-export interface MLUrlTestResult {
-  wasRedirected: boolean;
-  finalUrl: string;
-  isGamePathAI: boolean;
-  responseStatus?: number;
+export interface MLOptimizationOptions {
+  optimizeRoutes?: boolean;
+  optimizeSettings?: boolean;
+  optimizeSystem?: boolean;
+  aggressiveness?: 'low' | 'medium' | 'high';
+  systemInfo?: any;
 }

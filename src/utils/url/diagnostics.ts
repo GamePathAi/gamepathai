@@ -1,4 +1,3 @@
-
 /**
  * URL and browser diagnostics utilities
  */
@@ -291,15 +290,14 @@ export const testRedirects = async (url: string): Promise<RedirectTest[]> => {
       // Parse and analyze API response for diagnostics if it's likely JSON
       if (contentType && contentType.includes('application/json')) {
         try {
-          // Fix: Properly check and assert the response type after parsing JSON
           const responseData = await response.json();
           
-          // First check if the response is an object before accessing properties
+          // Make sure responseData is not null and is an object before accessing properties
           if (responseData !== null && typeof responseData === 'object') {
-            // Type guard is in place, now safe to use type assertion
+            // Now it's safe to cast to a record type and access properties
             const responseJson = responseData as Record<string, unknown>;
             
-            // Check for API-level redirect indicators
+            // Check for API-level redirect indicators using the in operator for type safety
             if ('redirect' in responseJson || 'location' in responseJson) {
               const redirectTarget = String(responseJson.redirect || responseJson.location || 'API redirect');
               results.push({

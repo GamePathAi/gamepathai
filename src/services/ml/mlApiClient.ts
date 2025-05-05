@@ -1,3 +1,4 @@
+
 /**
  * Core ML API client implementation
  * Handles basic fetch operations with ML-specific configurations
@@ -176,7 +177,8 @@ export const mlApiClient = {
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         
         // Retry with one less retry count
-        return this.withRetry<T>(endpoint, options, retries - 1, cacheTTL);
+        // Fixed: Don't use generic type parameter here as well
+        return await this.withRetry(endpoint, options, retries - 1, cacheTTL) as T;
       }
       
       // If no retries left or it's a redirect issue, throw as ML error

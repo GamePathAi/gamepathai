@@ -1,23 +1,23 @@
 
 // Export ML API modules
 export * from './mlApiClient';
-
-// Instead of re-exporting mlDiagnostics from mlApiClient, we're now importing it from mlDiagnostics file
-// export * from './mlDiagnostics'; - This was causing duplicated export
-
-// We need to explicitly export from mlDiagnostics to avoid conflicts
+export * from './mlApiTypes';
 export { mlDiagnostics } from './mlDiagnostics';
+export { mlCache, CACHE_TTL } from './mlCacheManager';
 
-// Export types explicitly to avoid duplicate exports
+// Export types explicitly
+export type {
+  MLConnectivityTestResult,
+  MLRedirectProtectionResult,
+  MLExtensionCheckResult,
+  MLUrlTestResult
+} from './mlDiagnostics';
+
 export type {
   MLRouteOptimizerResponse,
   MLPerformancePredictorResponse,
   MLDetectedGamesResponse,
   MLOptimizeGameResponse,
-  MLConnectivityTestResult,
-  MLRedirectProtectionResult,
-  MLExtensionCheckResult,
-  MLUrlTestResult,
   MLOptimizationOptions
 } from './types';
 

@@ -79,14 +79,8 @@ export const mlApiClient = {
       const cacheKey = `ml:${url}:${JSON.stringify(options.body || {})}`;
       
       try {
-        // Using type assertion to properly type the function call
-        const cacheFetch = apiCache.getOrFetch as <U>(
-          key: string, 
-          fetchFn: () => Promise<U>, 
-          options?: CacheOptions
-        ) => Promise<U>;
-        
-        return await cacheFetch(cacheKey, async () => {
+        // Fixed: Don't use generics with untyped function call
+        return await apiCache.getOrFetch(cacheKey, async () => {
           return await this.performFetch<T>(url, headers, options);
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT
@@ -170,14 +164,8 @@ export const mlApiClient = {
     cacheTTL?: number
   ): Promise<T> {
     try {
-      // Using type assertion to properly type the function call
-      const typedFetch = this.fetch as <U>(
-        endpoint: string, 
-        options?: RequestInit, 
-        cacheTTL?: number
-      ) => Promise<U>;
-      
-      return await typedFetch<T>(endpoint, options, cacheTTL);
+      // Fixed: Don't use generics with untyped function call
+      return await this.fetch(endpoint, options, cacheTTL) as T;
     } catch (error: any) {
       // Check if we have retries left
       if (retries > 0) {

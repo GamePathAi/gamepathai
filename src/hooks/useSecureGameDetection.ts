@@ -4,13 +4,14 @@ import { usePermissions } from '@/contexts/PermissionsContext';
 import { electronApiService } from '@/services/electron/electronApiService';
 import { toast } from "sonner";
 
-interface Game {
+export interface Game {
   id: string;
   name: string;
   executable: string;
   path: string;
   platform: string;
   lastPlayed: number;
+  genre?: string; // Added genre as optional property to match both usages
 }
 
 export const useSecureGameDetection = () => {

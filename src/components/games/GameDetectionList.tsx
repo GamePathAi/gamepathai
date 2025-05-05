@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, RefreshCw, AlertCircle, Check } from 'lucide-react';
@@ -6,10 +5,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useSecureGameDetection } from '@/hooks/useSecureGameDetection';
+import { useSecureGameDetection, Game } from '@/hooks/useSecureGameDetection';
 import { MLDetectedGamesResponse } from '@/services/ml';
 import { Game as HookGame } from '@/hooks/useGames';
-import { Game } from '@/hooks/useSecureGameDetection';
 
 const GameDetectionList = () => {
   const { t } = useTranslation();

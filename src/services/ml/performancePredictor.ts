@@ -6,7 +6,7 @@
 import { mlApiClient } from './mlApiClient';
 import { toast } from "sonner";
 import { MLPerformancePredictorResponse } from './types';
-import { CACHE_TTL } from './mlCacheManager';
+import { CACHE_TTL } from './mlCacheManager'; // Updated import path
 
 export const performancePredictorService = {
   /**

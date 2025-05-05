@@ -5,7 +5,7 @@
 import { sanitizeApiUrl } from "../../../utils/url";
 import { reportMLIssue } from "../../../utils/appInitializer";
 import { MLApiRequestOptions, ML_API_CONFIG } from "../types/config";
-import { mlCache } from "../cache/cacheManager";
+import { mlCache } from "../mlCacheManager";  // Updated import to use the core implementation
 
 // Get environment-specific configuration
 const isDev = process.env.NODE_ENV === 'development';

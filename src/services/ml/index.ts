@@ -3,7 +3,7 @@
 export * from './mlApiClient';
 export * from './mlApiTypes';
 export * from './mlDiagnostics';
-export { mlCache, CACHE_TTL } from './mlCacheManager';
+export { mlCache, CACHE_TTL } from './mlCacheManager'; // Export from the core implementation
 
 // Export specialized service modules
 export * from './routeOptimizer';

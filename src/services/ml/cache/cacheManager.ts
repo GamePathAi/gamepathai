@@ -3,19 +3,14 @@
  * ML API cache manager
  * Handles caching of ML API responses
  */
-import { apiCache } from "../../../services/utils/api/cacheManager";
+import { mlCache as coreCache, CACHE_TTL } from "../mlCacheManager";
 
 /**
- * Cache TTL constants (in milliseconds)
+ * ML specific cache manager
+ * This file now serves as a wrapper around the core implementation in mlCacheManager.ts
+ * to maintain backward compatibility
  */
-export const CACHE_TTL = {
-  DEFAULT: 5 * 60 * 1000, // 5 minutes
-  SHORT: 60 * 1000,       // 1 minute
-  ROUTES: 10 * 60 * 1000, // 10 minutes
-  PERFORMANCE: 15 * 60 * 1000, // 15 minutes
-  GAMES: 30 * 60 * 1000,  // 30 minutes
-  OPTIMIZE: 0            // No cache for optimization
-};
+export { CACHE_TTL };
 
 /**
  * Interface for ML cache options
@@ -26,7 +21,7 @@ export interface MLCacheOptions {
 }
 
 /**
- * ML specific cache manager
+ * ML specific cache manager wrapper
  */
 export const mlCache = {
   /**
@@ -37,23 +32,21 @@ export const mlCache = {
     fetchFn: () => Promise<T>,
     options: MLCacheOptions = {}
   ): Promise<T> {
-    return apiCache.getOrFetch<T>(key, fetchFn, options);
+    return coreCache.getOrFetch<T>(key, fetchFn, options);
   },
 
   /**
    * Clear cache entries by pattern
    */
   clear(pattern: string): void {
-    // For now, delegate to apiCache
-    // We can extend this with ML-specific logic if needed
-    apiCache.clearAll();
+    return coreCache.clear(pattern);
   },
 
   /**
    * Create a fallback cache mechanism
    */
   createFallback<T>(key: string, fallbackData: T, ttl: number = CACHE_TTL.DEFAULT): void {
-    apiCache.set(key, fallbackData, ttl);
+    coreCache.set(key, fallbackData, ttl);
   }
 };
 

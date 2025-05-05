@@ -6,7 +6,7 @@
 import { mlApiClient } from './mlApiClient';
 import { toast } from "sonner";
 import { MLOptimizeGameResponse, MLOptimizationOptions } from './types';
-import { CACHE_TTL } from './mlCacheManager';
+import { CACHE_TTL } from './mlCacheManager'; // Updated import path
 
 export const gameOptimizerService = {
   /**

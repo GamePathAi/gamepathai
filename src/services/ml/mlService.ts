@@ -1,8 +1,8 @@
+
 /**
  * ML service handlers for specific machine learning models
  */
 import { mlApiClient } from './mlApiClient';
-import { apiCache } from '../../utils/api/cacheManager';
 import { toast } from "sonner";
 import { 
   MLRouteOptimizerResponse, 
@@ -11,15 +11,8 @@ import {
   MLOptimizeGameResponse,
   MLOptimizationOptions
 } from './types';
-import { mlDiagnostics } from './mlApiClient';
-
-// Cache TTL constants
-const CACHE_TTL = {
-  ROUTES: 30 * 60 * 1000,      // 30 min for route optimization
-  PERFORMANCE: 60 * 60 * 1000, // 1 hour for performance predictions
-  GAMES: 15 * 60 * 1000,       // 15 min for game detection
-  OPTIMIZE: 60 * 60 * 1000     // 1 hour for game optimization
-};
+import { mlDiagnostics } from './mlDiagnostics';
+import { CACHE_TTL } from './mlCacheManager';
 
 /**
  * ML service handlers for specific machine learning models
@@ -33,14 +26,13 @@ export const mlService = {
     aggressiveness?: 'low' | 'medium' | 'high'
   } = {}): Promise<MLRouteOptimizerResponse> => {
     try {
-      return await mlApiClient.withRetry<MLRouteOptimizerResponse>(
+      return await mlApiClient.withRetry(
         `/ml/route-optimizer/${gameId}`,
         {
           method: 'POST',
           body: JSON.stringify(params),
-        },
-        3, // retries
-        CACHE_TTL.ROUTES
+          cacheTTL: CACHE_TTL.ROUTES
+        }
       );
     } catch (error) {
       console.error('Route optimization failed:', error);
@@ -56,14 +48,13 @@ export const mlService = {
    */
   predictPerformance: async (gameId: string, systemSpecs: any): Promise<MLPerformancePredictorResponse> => {
     try {
-      return await mlApiClient.withRetry<MLPerformancePredictorResponse>(
+      return await mlApiClient.withRetry(
         `/ml/performance-predictor/${gameId}`,
         {
           method: 'POST',
           body: JSON.stringify({ systemSpecs }),
-        },
-        3, // retries
-        CACHE_TTL.PERFORMANCE
+          cacheTTL: CACHE_TTL.PERFORMANCE
+        }
       );
     } catch (error) {
       console.error('Performance prediction failed:', error);
@@ -79,11 +70,12 @@ export const mlService = {
    */
   detectGames: async (): Promise<MLDetectedGamesResponse> => {
     try {
-      return await mlApiClient.withRetry<MLDetectedGamesResponse>(
+      return await mlApiClient.withRetry(
         '/ml/game-detection',
-        { method: 'GET' },
-        3, // retries
-        CACHE_TTL.GAMES
+        { 
+          method: 'GET',
+          cacheTTL: CACHE_TTL.GAMES
+        }
       );
     } catch (error) {
       console.error('Game detection failed:', error);
@@ -114,14 +106,13 @@ export const mlService = {
     try {
       toast.loading(`Otimizando ${gameId}...`);
       
-      const result = await mlApiClient.withRetry<MLOptimizeGameResponse>(
+      const result = await mlApiClient.withRetry(
         `/ml/optimize-game/${gameId}`,
         {
           method: 'POST',
           body: JSON.stringify(finalOptions),
-        },
-        3, // retries
-        CACHE_TTL.OPTIMIZE
+          cacheTTL: CACHE_TTL.OPTIMIZE
+        }
       );
       
       if (result.success) {
@@ -172,5 +163,5 @@ export const mlService = {
   }
 };
 
-// Re-export mlDiagnostics
+// Export diagnostics for convenience
 export { mlDiagnostics };

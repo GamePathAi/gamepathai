@@ -2,7 +2,7 @@
 // Export ML API modules
 export * from './mlApiClient';
 export * from './mlApiTypes';
-export { mlDiagnostics } from './mlDiagnostics';
+export * from './mlDiagnostics';
 export { mlCache, CACHE_TTL } from './mlCacheManager';
 
 // Export types explicitly
@@ -22,6 +22,7 @@ export type {
 } from './types';
 
 export * from './mlUrlDiagnostics';
+export * from './mlService';
 
 // Instead of re-exporting mlService directly, we'll let consumers import it dynamically
 // to avoid circular dependencies

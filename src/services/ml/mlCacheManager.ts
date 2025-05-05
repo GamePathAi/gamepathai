@@ -1,3 +1,4 @@
+
 /**
  * ML-specific cache manager for API responses
  */
@@ -7,7 +8,11 @@ export const CACHE_TTL = {
   PREDICTIONS: 30 * 60 * 1000, // 30 minutes for predictions
   DETECTIONS: 10 * 60 * 1000,  // 10 minutes for detections
   OPTIMIZATIONS: 60 * 60 * 1000, // 1 hour for optimizations
-  DEFAULT: 5 * 60 * 1000 // 5 minutes default
+  DEFAULT: 5 * 60 * 1000, // 5 minutes default
+  ROUTES: 30 * 60 * 1000,      // 30 min for route optimization
+  PERFORMANCE: 60 * 60 * 1000, // 1 hour for performance predictions
+  GAMES: 15 * 60 * 1000,       // 15 min for game detection
+  OPTIMIZE: 60 * 60 * 1000     // 1 hour for game optimization
 };
 
 // Interface for cache options

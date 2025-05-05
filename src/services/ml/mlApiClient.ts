@@ -1,3 +1,4 @@
+
 /**
  * Core ML API client implementation
  * Handles basic fetch operations with ML-specific configurations
@@ -145,7 +146,7 @@ export const mlApiClient = {
     retries: number = MAX_RETRIES
   ): Promise<T> {
     try {
-      return await this.fetch(endpoint, options) as T;
+      return await this.fetch<T>(endpoint, options);
     } catch (error: any) {
       // Check if we have retries left
       if (retries > 0) {

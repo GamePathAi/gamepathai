@@ -1,255 +1,192 @@
-
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Activity, Server, Wifi, WifiOff, RefreshCw, Shield, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { testBackendConnection, testAWSConnection } from '@/services/api';
-import { mlDiagnostics } from '@/services/ml/mlService';
-import { toast } from "sonner";
-import { detectRedirectScripts } from '@/utils/url/navigationMonitor';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { mlDiagnostics, MLRedirectProtectionResult, MLConnectivityTestResult } from '@/services/ml';
+import { mlNetworkFixer } from '@/services/ml/networkFixer';
 
-const ConnectionDiagnostics = () => {
-  const { t } = useTranslation();
-  const [isRunningTests, setIsRunningTests] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<{
-    backendConnected: boolean;
-    awsConnected: boolean;
-    mlConnected: boolean;
-    redirectsDetected: boolean;
-    interfereingExtensions: string[];
-    lastChecked: Date | null;
-  }>({
-    backendConnected: false,
-    awsConnected: false,
-    mlConnected: false,
-    redirectsDetected: false,
-    interfereingExtensions: [],
-    lastChecked: null
-  });
+interface ConnectionDiagnosticsProps {
+  onClose?: () => void;
+}
 
-  // Run diagnostics on component mount
+const ConnectionDiagnostics: React.FC<ConnectionDiagnosticsProps> = ({ onClose }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [testResults, setTestResults] = useState<MLConnectivityTestResult | null>(null);
+  const [redirectProtection, setRedirectProtection] = useState<MLRedirectProtectionResult | null>(null);
+  const [isFixing, setIsFixing] = useState(false);
+
   useEffect(() => {
     runDiagnostics();
   }, []);
-  
-  const runSingleTest = async <T extends any>(
-    testFn: () => Promise<T>,
-    progressIncrement: number = 25
-  ): Promise<T> => {
+
+  const runDiagnostics = async () => {
+    setIsLoading(true);
     try {
-      const result = await testFn();
-      setProgress(prev => Math.min(prev + progressIncrement, 100));
-      return result;
+      // Run connectivity tests
+      const results = await mlDiagnostics.runDiagnostics();
+      setTestResults(results);
+      
+      // Test redirect protection
+      const protectionTest = await mlDiagnostics.testRedirectProtection('/api/ml/health');
+      setRedirectProtection(protectionTest);
+      
+      if (!results.success) {
+        toast.error("Problemas de conectividade detectados", {
+          description: "Verifique os resultados do diagnóstico para mais detalhes"
+        });
+      } else {
+        toast.success("Diagnóstico concluído", {
+          description: "Todos os testes de conectividade passaram"
+        });
+      }
     } catch (error) {
-      console.error('Test failed:', error);
-      setProgress(prev => Math.min(prev + progressIncrement, 100));
-      throw error;
+      console.error("Erro ao executar diagnósticos:", error);
+      toast.error("Erro ao executar diagnósticos", {
+        description: "Não foi possível completar os testes de conectividade"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const runDiagnostics = async () => {
-    setIsRunningTests(true);
-    setProgress(0);
+  const attemptFix = async () => {
+    setIsFixing(true);
+    toast.loading("Tentando corrigir problemas de conectividade...");
     
     try {
-      // Run series of tests with progress updates
-      const backendConnected = await runSingleTest(() => testBackendConnection(), 20);
-      const awsConnected = await runSingleTest(() => testAWSConnection(), 20);
-      const mlConnectivity = await runSingleTest(() => mlDiagnostics.testConnectivity(), 20);
+      const result = await mlNetworkFixer.diagnoseAndFix();
       
-      // FIXED: Convert synchronous function into a Promise and properly type its return
-      const extensionsCheck = await runSingleTest(async () => {
-        return mlDiagnostics.checkForInterfereingExtensions();
-      }, 20);
-      
-      // Check for redirect scripts
-      const redirectsDetected = await runSingleTest(() => {
-        const hasRedirects = detectRedirectScripts();
-        return Promise.resolve(hasRedirects);
-      }, 20);
-      
-      // Update results
-      setResults({
-        backendConnected,
-        awsConnected,
-        mlConnected: mlConnectivity,
-        redirectsDetected,
-        interfereingExtensions: extensionsCheck.extensions,
-        lastChecked: new Date()
-      });
-      
-      // Show summary toast
-      const connectedCount = [backendConnected, awsConnected, mlConnectivity]
-        .filter(Boolean).length;
-      
-      if (connectedCount === 3) {
-        toast.success(t("diagnostics.allServicesConnected"));
-      } else if (connectedCount > 0) {
-        toast.warning(t("diagnostics.someServicesConnected", {count: connectedCount, total: 3}));
-      } else {
-        toast.error(t("diagnostics.noServicesConnected"));
-      }
-      
-      // Show warning about redirect scripts if detected
-      if (redirectsDetected) {
-        toast.warning(t("diagnostics.redirectsDetected"), {
-          description: t("diagnostics.redirectsWarning")
+      if (result.success) {
+        toast.success("Problemas corrigidos", {
+          description: result.message
         });
-      }
-      
-      // Show warning about extensions if detected
-      if (extensionsCheck.extensions.length > 0) {
-        toast.warning(t("diagnostics.extensionsDetected"), {
-          description: t("diagnostics.extensionsWarning", {
-            extensions: extensionsCheck.extensions.join(", ")
-          })
+        // Re-run diagnostics to confirm fix
+        await runDiagnostics();
+      } else {
+        toast.error("Não foi possível corrigir todos os problemas", {
+          description: result.recommendedAction || result.message
         });
       }
     } catch (error) {
-      console.error('Diagnostics failed:', error);
-      toast.error(t("diagnostics.error"), {
-        description: t("diagnostics.errorDetails")
+      console.error("Erro ao tentar corrigir problemas:", error);
+      toast.error("Erro ao tentar corrigir problemas", {
+        description: "Ocorreu um erro inesperado durante a tentativa de correção"
       });
     } finally {
-      setIsLoadingTests(false);
-      setProgress(100);
+      setIsFixing(false);
     }
   };
-  
-  // Fix: Wrong variable name
-  const setIsLoadingTests = (value: boolean) => {
-    setIsRunningTests(value);
+
+  const getStatusIcon = (success: boolean) => {
+    if (success) {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+    return <AlertTriangle className="h-4 w-4 text-amber-500" />;
   };
-  
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Activity className="h-5 w-5" />
-          {t("diagnostics.title")}
+    <Card className="border-cyber-blue/30 bg-cyber-darkblue/90">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center text-cyber-blue">
+          <Shield className="mr-2" size={18} />
+          Diagnóstico de Conectividade ML
         </CardTitle>
-        <CardDescription>{t("diagnostics.description")}</CardDescription>
       </CardHeader>
-      
       <CardContent>
-        {isRunningTests && (
-          <div className="mb-4">
-            <p className="text-sm mb-1">{t("diagnostics.running")}</p>
-            <Progress value={progress} />
-          </div>
-        )}
-        
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Backend Connection */}
-            <div className="p-4 border rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Server className="h-4 w-4" />
-                  <span className="font-medium">{t("diagnostics.backend")}</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  results.backendConnected ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 
-                  'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                }`}>
-                  {results.backendConnected ? t("diagnostics.connected") : t("diagnostics.disconnected")}
-                </span>
-              </div>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-cyber-blue mb-2" />
+              <p className="text-sm text-gray-400">Executando diagnósticos...</p>
             </div>
-            
-            {/* AWS Connection */}
-            <div className="p-4 border rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wifi className="h-4 w-4" />
-                  <span className="font-medium">{t("diagnostics.aws")}</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  results.awsConnected ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 
-                  'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                }`}>
-                  {results.awsConnected ? t("diagnostics.connected") : t("diagnostics.disconnected")}
-                </span>
-              </div>
-            </div>
-            
-            {/* ML Connection */}
-            <div className="p-4 border rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  <span className="font-medium">{t("diagnostics.ml")}</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  results.mlConnected ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 
-                  'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                }`}>
-                  {results.mlConnected ? t("diagnostics.connected") : t("diagnostics.disconnected")}
-                </span>
-              </div>
-            </div>
-            
-            {/* Redirect Scripts */}
-            <div className="p-4 border rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  <span className="font-medium">{t("diagnostics.redirects")}</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  !results.redirectsDetected ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 
-                  'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                }`}>
-                  {results.redirectsDetected ? t("diagnostics.detected") : t("diagnostics.notDetected")}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Interfering Extensions */}
-          {results.interfereingExtensions.length > 0 && (
-            <div className="p-4 border border-amber-200 dark:border-amber-900/50 rounded-md bg-amber-50 dark:bg-amber-900/20">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-500 dark:text-amber-400 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-amber-800 dark:text-amber-300">
-                    {t("diagnostics.extensionsDetected")}
-                  </h4>
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
-                    {t("diagnostics.extensionsDetail")}
-                  </p>
-                  <ul className="mt-2 list-disc list-inside text-sm text-amber-700 dark:text-amber-400">
-                    {results.interfereingExtensions.map((ext, i) => (
-                      <li key={i}>{ext}</li>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-gray-200">Resultados do Teste</h3>
+                
+                {testResults && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span>Conectividade Geral:</span>
+                      <span className={`flex items-center ${testResults.success ? 'text-green-500' : 'text-amber-500'}`}>
+                        {testResults.success ? 'Conectado' : 'Problemas Detectados'}
+                        {getStatusIcon(testResults.success)}
+                      </span>
+                    </div>
+                    
+                    {testResults.results && Object.entries(testResults.results).map(([key, value]) => (
+                      <div key={key} className="flex items-center justify-between text-xs">
+                        <span>{key}:</span>
+                        <span className={`flex items-center ${value.success ? 'text-green-500' : 'text-amber-500'}`}>
+                          {value.success ? 'OK' : value.error || 'Falha'}
+                          {getStatusIcon(value.success)}
+                        </span>
+                      </div>
                     ))}
-                  </ul>
-                </div>
+                  </div>
+                )}
+                
+                {redirectProtection && (
+                  <div className="mt-4 space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-200">Proteção contra Redirecionamentos</h3>
+                    <div className="flex items-center justify-between text-xs">
+                      <span>Status:</span>
+                      <span className={`flex items-center ${redirectProtection.protected ? 'text-green-500' : 'text-red-500'}`}>
+                        {redirectProtection.protected ? 'Protegido' : 'Vulnerável'}
+                        {getStatusIcon(redirectProtection.protected)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {redirectProtection.details}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+              
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={runDiagnostics}
+                  disabled={isLoading || isFixing}
+                >
+                  Executar Novamente
+                </Button>
+                
+                {testResults && !testResults.success && (
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={attemptFix}
+                    disabled={isLoading || isFixing}
+                    className="bg-cyber-blue hover:bg-cyber-blue/80"
+                  >
+                    {isFixing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Corrigindo...
+                      </>
+                    ) : (
+                      'Tentar Corrigir'
+                    )}
+                  </Button>
+                )}
+                
+                {onClose && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={onClose}
+                  >
+                    Fechar
+                  </Button>
+                )}
+              </div>
+            </>
           )}
-          
-          <Button 
-            onClick={runDiagnostics} 
-            disabled={isRunningTests} 
-            className="w-full"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRunningTests ? 'animate-spin' : ''}`} />
-            {t("diagnostics.runTests")}
-          </Button>
         </div>
       </CardContent>
-      
-      <CardFooter className="text-xs text-gray-500">
-        {results.lastChecked && t("diagnostics.lastRun", {
-          time: new Intl.DateTimeFormat(undefined, { 
-            dateStyle: 'short', 
-            timeStyle: 'short' 
-          }).format(results.lastChecked)
-        })}
-      </CardFooter>
     </Card>
   );
 };

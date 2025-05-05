@@ -3,6 +3,18 @@
  */
 
 /**
+ * Define the RedirectTest interface at the beginning of the file
+ */
+export interface RedirectTest {
+  url: string;
+  redirected: boolean;
+  target?: string;
+  isGamePathAI?: boolean;
+  status?: number;
+  error?: string;
+}
+
+/**
  * Check if the current browser environment might be causing redirect issues
  */
 export const detectBrowserInterference = (): { 
@@ -278,11 +290,11 @@ export const testRedirects = async (url: string): Promise<RedirectTest[]> => {
       // Parse and analyze API response for diagnostics if it's likely JSON
       if (contentType && contentType.includes('application/json')) {
         try {
-          // Use proper type assertion here
-          const responseJson = await response.json() as Record<string, unknown>;
+          // Fix for TypeScript error: cast response.json() to appropriate type
+          const responseJson = await response.json() as Record<string, string>;
           
           // Check for API-level redirect indicators
-          if (responseJson && typeof responseJson === 'object' && 
+          if (responseJson && 
               ('redirect' in responseJson || 'location' in responseJson)) {
             results.push({
               url,

@@ -79,8 +79,14 @@ export const mlApiClient = {
       const cacheKey = `ml:${url}:${JSON.stringify(options.body || {})}`;
       
       try {
-        // Fix the untyped function call by using a type assertion
-        return await (apiCache.getOrFetch as <T>(key: string, fetchFn: () => Promise<T>, options?: CacheOptions) => Promise<T>)(cacheKey, async () => {
+        // Using type assertion to properly type the function call
+        const cacheFetch = apiCache.getOrFetch as <U>(
+          key: string, 
+          fetchFn: () => Promise<U>, 
+          options?: CacheOptions
+        ) => Promise<U>;
+        
+        return await cacheFetch(cacheKey, async () => {
           return await this.performFetch<T>(url, headers, options);
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT
@@ -164,8 +170,14 @@ export const mlApiClient = {
     cacheTTL?: number
   ): Promise<T> {
     try {
-      // Fix the untyped function call by specifying the type parameter
-      return await (this.fetch as <T>(endpoint: string, options?: RequestInit, cacheTTL?: number) => Promise<T>)<T>(endpoint, options, cacheTTL);
+      // Using type assertion to properly type the function call
+      const typedFetch = this.fetch as <U>(
+        endpoint: string, 
+        options?: RequestInit, 
+        cacheTTL?: number
+      ) => Promise<U>;
+      
+      return await typedFetch<T>(endpoint, options, cacheTTL);
     } catch (error: any) {
       // Check if we have retries left
       if (retries > 0) {

@@ -31,7 +31,7 @@ export const isElectron = (): boolean => {
   // Electron defines window.process, browser doesn't
   return typeof window !== 'undefined' && 
     typeof window.process === 'object' && 
-    // FIXED: Check renderer type safely with optional chaining
+    // Use optional chaining to access 'type' safely
     window.process?.type === 'renderer';
 };
 
@@ -42,7 +42,7 @@ export const isElectronMain = (): boolean => {
   return typeof process !== 'undefined' && 
     process.versions && 
     !!process.versions.electron && 
-    // FIXED: Use optional chaining to access 'type' safely
+    // Use optional chaining to access 'type' safely
     process?.type !== 'renderer';
 };
 

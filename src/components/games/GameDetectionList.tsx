@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useSecureGameDetection } from '@/hooks/useSecureGameDetection';
 import { MLDetectedGamesResponse } from '@/services/ml';
-import { Game } from '@/hooks/useGames';
+import { Game as HookGame } from '@/hooks/useGames';
+import { Game } from '@/hooks/useSecureGameDetection';
 
 const GameDetectionList = () => {
   const { t } = useTranslation();
@@ -54,9 +55,8 @@ const GameDetectionList = () => {
         image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(mlGame.name)}`,
         isOptimized: false,
         optimizationType: "none",
-        // Add executable property to match Game type from useSecureGameDetection
         executable: mlGame.executable || ''
-      } as Game);
+      });
     }
   });
   

@@ -14,6 +14,7 @@ export interface Game {
   optimizationType?: "both" | "network" | "system" | "none";
   path?: string;
   platform?: string;
+  executable?: string;  // Added executable as optional property
 }
 
 export function useGames() {

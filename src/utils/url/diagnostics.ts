@@ -1,4 +1,3 @@
-
 /**
  * URL and browser diagnostics utilities
  */
@@ -217,4 +216,96 @@ export const isUrlSafe = (url: string): boolean => {
   
   // Otherwise consider it safe
   return true;
+};
+
+/**
+ * Test redirects for potential issues
+ */
+export const testRedirects = async (url: string): Promise<RedirectTest[]> => {
+  const results: RedirectTest[] = [];
+  
+  // Test the URL for redirects
+  try {
+    const response = await fetch(url, { redirect: 'manual' });
+    
+    // Check if we got redirected
+    if (response.redirected) {
+      const redirectTarget = response.url;
+      results.push({
+        url,
+        redirected: true,
+        target: redirectTarget,
+        isGamePathAI: redirectTarget.includes('gamepathai.com') || redirectTarget.includes('gpai.'),
+        status: response.status
+      });
+      
+      // Also test the redirect target recursively to check for redirect chains
+      if (redirectTarget !== url) {
+        const additionalTests = await testRedirects(redirectTarget);
+        results.push(...additionalTests);
+      }
+    } else {
+      // Check response for suspicious behavior
+      const responseStatus = response.status;
+      const contentType = response.headers.get('content-type');
+      const hasHtmlContent = contentType && contentType.includes('text/html');
+      
+      // Clone the response to read its body
+      const responseBody = hasHtmlContent ? await response.text() : '';
+      
+      // Look for redirect patterns in HTML (meta refresh, JS redirects)
+      const hasMetaRefresh = responseBody.includes('http-equiv="refresh"');
+      const hasJsRedirect = responseBody.includes('window.location') || 
+                          responseBody.includes('document.location');
+      
+      if (hasMetaRefresh || hasJsRedirect) {
+        results.push({
+          url,
+          redirected: true,
+          target: 'Client-side redirect detected',
+          isGamePathAI: false,
+          status: responseStatus
+        });
+      } else {
+        // No redirect detected
+        results.push({
+          url,
+          redirected: false,
+          status: responseStatus
+        });
+      }
+      
+      // Parse and analyze API response for diagnostics if it's likely JSON
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          // Use proper type assertion here
+          const responseJson = await response.json() as Record<string, unknown>;
+          
+          // Check for API-level redirect indicators
+          if (responseJson && typeof responseJson === 'object' && 
+              ('redirect' in responseJson || 'location' in responseJson)) {
+            results.push({
+              url,
+              redirected: true,
+              target: String(responseJson.redirect || responseJson.location || 'API redirect'),
+              isGamePathAI: false,
+              status: responseStatus
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing JSON in diagnostics:', e);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error testing URL:', error);
+    results.push({
+      url,
+      redirected: false,
+      status: 0,
+      error: 'Connection error'
+    });
+  }
+  
+  return results;
 };

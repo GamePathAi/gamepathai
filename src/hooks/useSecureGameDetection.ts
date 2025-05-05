@@ -13,6 +13,8 @@ export interface Game {
   lastPlayed: number;
   genre?: string; // Optional property to match both usages
   image?: string; // Added image as optional property
+  isOptimized?: boolean; // Added isOptimized as optional property
+  optimizationType?: "both" | "network" | "system" | "none"; // Added optimizationType as optional property
 }
 
 export const useSecureGameDetection = () => {

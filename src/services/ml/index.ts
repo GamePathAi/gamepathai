@@ -2,8 +2,7 @@
 // Export ML API modules
 export * from './mlApiClient';
 
-// We're not re-exporting mlDiagnostics from mlApiClient since it would cause duplication
-// Instead we export it only from mlDiagnostics file
+// Instead of re-exporting mlDiagnostics from mlApiClient, we're now importing it from mlDiagnostics file
 export * from './mlDiagnostics';
 
 // Export types explicitly to avoid duplicate exports

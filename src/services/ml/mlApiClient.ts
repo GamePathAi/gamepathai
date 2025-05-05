@@ -139,7 +139,7 @@ export const mlApiClient = {
   
   /**
    * Create a retry wrapper for ML operations that may sometimes fail
-   * Fix: Corrected implementation to avoid generic type parameter in recursive call
+   * Fix: Fixed recursive call without generic type parameters
    */
   async withRetry<T>(
     endpoint: string, 
@@ -157,8 +157,8 @@ export const mlApiClient = {
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         
-        // Use recursive call without generic type parameter and use type assertion
-        return this.withRetry(endpoint, options, retries - 1) as Promise<T>;
+        // Correct way to make a recursive call without type parameters
+        return await this.withRetry(endpoint, options, retries - 1) as Promise<T>;
       }
       
       // If no retries left or it's a redirect issue, throw as ML error

@@ -291,20 +291,25 @@ export const testRedirects = async (url: string): Promise<RedirectTest[]> => {
       // Parse and analyze API response for diagnostics if it's likely JSON
       if (contentType && contentType.includes('application/json')) {
         try {
-          // Fix for TypeScript error: properly assert the response type
+          // Fix for TypeScript error: properly check and assert the response type
           const responseData = await response.json();
-          const responseJson = responseData as Record<string, string>;
           
-          // Check for API-level redirect indicators
-          if (responseJson && 
-              ('redirect' in responseJson || 'location' in responseJson)) {
-            results.push({
-              url,
-              redirected: true,
-              target: String(responseJson.redirect || responseJson.location || 'API redirect'),
-              isGamePathAI: false,
-              status: responseStatus
-            });
+          // First check if the response is an object before accessing properties
+          if (responseData && typeof responseData === 'object' && responseData !== null) {
+            // Safe to access properties now that we've checked it's an object
+            const responseJson = responseData as Record<string, unknown>;
+            
+            // Check for API-level redirect indicators
+            if ('redirect' in responseJson || 'location' in responseJson) {
+              const redirectTarget = String(responseJson.redirect || responseJson.location || 'API redirect');
+              results.push({
+                url,
+                redirected: true,
+                target: redirectTarget,
+                isGamePathAI: false,
+                status: responseStatus
+              });
+            }
           }
         } catch (e) {
           console.error('Error parsing JSON in diagnostics:', e);

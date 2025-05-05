@@ -5,13 +5,21 @@ export * from './mlApiTypes';
 export * from './mlDiagnostics';
 export { mlCache, CACHE_TTL } from './mlCacheManager';
 
+// Export specialized service modules
+export * from './routeOptimizer';
+export * from './performancePredictor';
+export * from './gameDetection';
+export * from './gameOptimizer';
+export * from './cacheService';
+export * from './diagnosticService';
+
 // Export types explicitly
 export type {
   MLConnectivityTestResult,
   MLRedirectProtectionResult,
   MLExtensionCheckResult,
   MLUrlTestResult
-} from './mlDiagnostics';
+} from './types';
 
 export type {
   MLRouteOptimizerResponse,
@@ -23,6 +31,3 @@ export type {
 
 export * from './mlUrlDiagnostics';
 export * from './mlService';
-
-// Instead of re-exporting mlService directly, we'll let consumers import it dynamically
-// to avoid circular dependencies

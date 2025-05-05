@@ -133,17 +133,4 @@ export const detectRedirectAttempt = (url: string, isMlOperation = false): boole
   return false;
 };
 
-/**
- * Check if a network error might be due to CORS or redirect issues
- */
-export const isCorsOrRedirectError = (error: any): boolean => {
-  if (!error) return false;
-  
-  const errorString = String(error).toLowerCase();
-  return (
-    errorString.includes('cors') || 
-    errorString.includes('cross-origin') ||
-    errorString.includes('redirect') ||
-    errorString.includes('opaque')
-  );
-};
+// Remove duplicated isCorsOrRedirectError function from here, it's now only in url-safety.ts

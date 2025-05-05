@@ -1,159 +1,25 @@
 
-import { 
-  getApiBaseUrl, 
-  sanitizeApiUrl 
-} from "../../utils/url";
-
-// Configure API base URL - always use relative URLs
-const API_BASE_URL = '';  // Changed to use empty string for relative URLs
+import { secureFetch } from "../../utils/url/ApiInterceptor";
+import { UrlUtility } from "../../utils/url/UrlUtility";
 
 // Remove noisy logging and only log in development
 const isDev = process.env.NODE_ENV === 'development';
 if (isDev) {
-  console.log("API_BASE_URL being used:", getApiBaseUrl());
+  console.log("API_BASE_URL being used:", UrlUtility.getApiBaseUrl());
 }
 
 export const baseApiClient = {
   async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    // Ensure endpoint starts with / for proper URL joining
-    const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    
-    // Clean endpoint: remove any '/api/' prefixes
-    const cleanedEndpoint = formattedEndpoint
-      .replace(/^\/api\//, '/') // Remove leading /api/
-      .replace(/\/api\//, '/'); // Remove any /api/ in the path
-    
-    // Use empty base URL for relative paths
-    let url = cleanedEndpoint;
-    
-    // FINAL CHECK: Ensure absolute URLs are converted to relative paths
-    url = sanitizeApiUrl(url);
-    
-    const headers = {
-      "Content-Type": "application/json",
-      "X-No-Redirect": "1", // Prevent redirects
-      "X-Client-Source": "react-frontend", // Identifica origem da requisição
-      "Cache-Control": "no-cache, no-store", // Prevent caching
-      "Pragma": "no-cache",
-      // NOVO: Adicionar cabeçalhos anti-redirecionamento
-      "X-Max-Redirects": "0",
-      "X-Requested-With": "XMLHttpRequest",
-      ...(options.headers || {})
-    };
-    
-    // Add development header if in dev mode
-    if (isDev) {
-      headers["X-Development-Mode"] = "1";
-    }
-    
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    
     try {
-      if (isDev) {
-        console.log(`📡 Fazendo requisição para: ${url}`);
-      }
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
-      
-      // FINAL CHECK: Log and sanitize any absolute URLs
-      if (url.includes('http://') || url.includes('https://')) {
-        console.log(`⚠️ URL absoluto detectado na requisição: ${url}`);
-        url = sanitizeApiUrl(url);
-        console.log(`✅ URL convertido para: ${url}`);
-      }
-      
-      // Advanced fetch options
-      const fetchOptions: RequestInit = {
-        ...options,
-        headers,
-        mode: 'cors',
-        credentials: 'include',
-        cache: 'no-store',
-        // CHANGED: Error on redirect, don't follow
-        redirect: 'error',
-        signal: controller.signal
-      };
-      
-      const response = await fetch(url, fetchOptions);
-      clearTimeout(timeoutId);
-      
-      // Enhanced redirect verification
-      if (response.url && response.url !== url) {
-        // Check for origin or domain changes
-        const originalUrl = new URL(url, window.location.origin);
-        const redirectedUrl = new URL(response.url, window.location.origin);
-        
-        console.log(`⚠️ URL redirecionada: ${url} -> ${response.url}`);
-        
-        if (!isDev && (originalUrl.host !== redirectedUrl.host || 
-            redirectedUrl.href.includes('gamepathai.com'))) {
-          console.error('⚠️ Detectado redirecionamento na resposta:', {
-            original: url,
-            redirected: response.url
-          });
-          throw new Error(`Detected redirect to ${response.url}`);
-        }
-      }
-      
-      if (!response.ok) {
-        // Handle authentication errors
-        if (response.status === 401) {
-          console.log("Token expirado, tentando renovar...");
-          const renewed = await tryRenewToken();
-          
-          if (renewed) {
-            return baseApiClient.fetch<T>(endpoint, options);
-          }
-        }
-        
-        // Check if response is HTML instead of JSON (likely a redirect or error page)
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('text/html')) {
-          throw {
-            status: response.status,
-            message: 'Received HTML response when expecting JSON. Possible redirect or server error.',
-            isHtmlResponse: true
-          };
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw {
-          status: response.status,
-          ...errorData
-        };
-      }
-      
-      // Check if response is HTML instead of expected JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        if (contentType && contentType.includes('text/html')) {
-          throw {
-            status: 'error',
-            message: 'Received HTML response when expecting JSON. Possible redirect or server error.',
-            isHtmlResponse: true
-          };
-        }
-      }
-      
-      return response.json() as Promise<T>;
+      // Use the enhanced secureFetch utility
+      return await secureFetch<T>(endpoint, options);
     } catch (error: any) {
-      console.error(`❌ Falha na requisição para ${endpoint}:`, error);
+      console.error(`❌ Request failed for ${endpoint}:`, error);
       
-      // Check if the error is redirect-related
-      if (error.message && 
-         (error.message.includes('redirect') || error.message.includes('gamepathai.com'))) {
-        console.error('🚨 REDIRECIONAMENTO DETECTADO E BLOQUEADO');
-        // Log diagnostic information
-        console.error('Detalhes da requisição:', { url, endpoint, headers: options.headers });
-      }
-      
+      // Re-throw with enhanced error information
       throw {
-        status: 'error',
-        message: 'Falha ao buscar dados do servidor',
+        status: error.status || 'error',
+        message: error.message || 'Failed to fetch data from server',
         originalError: error
       };
     }
@@ -166,33 +32,31 @@ async function tryRenewToken() {
     const refreshToken = localStorage.getItem("refresh_token");
     if (!refreshToken) return false;
     
-    // IMPROVED: Use relative path
+    // Use a secure relative path
     const url = `/auth/refresh-token`;
     
-    const response = await fetch(sanitizeApiUrl(url), {
+    // Use secureFetch directly for auth operations
+    const response = await secureFetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-No-Redirect": "1", // Prevent redirects
-        "Cache-Control": "no-cache" // Prevent caching
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-      mode: 'cors',
-      credentials: 'include',
-      cache: 'no-store'
+      skipAuth: true, // Skip adding the expired auth token
+      body: JSON.stringify({ refresh_token: refreshToken })
     });
     
-    if (!response.ok) return false;
-    
-    const data = await response.json();
-    localStorage.setItem("auth_token", data.access_token);
-    if (data.refresh_token) {
-      localStorage.setItem("refresh_token", data.refresh_token);
+    // Handle successful token refresh
+    if (response && response.access_token) {
+      localStorage.setItem("auth_token", response.access_token);
+      if (response.refresh_token) {
+        localStorage.setItem("refresh_token", response.refresh_token);
+      }
+      return true;
     }
     
-    return true;
+    return false;
   } catch (error) {
     console.error("Token refresh failed:", error);
     return false;
   }
 }
+
+// Export the token renewal function for use in other auth-related files
+export { tryRenewToken };

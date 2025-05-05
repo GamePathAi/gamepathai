@@ -1,13 +1,12 @@
 
-import { getApiBaseUrl } from "../../utils/url";
-import { isTrustedDomain } from "../../utils/url/redirectDetection";
-import { extractApiPath } from "../../utils/url/urlSanitization";
+import { UrlUtility } from "../../utils/url/UrlUtility";
+import { secureFetch } from "../../utils/url/ApiInterceptor";
 
 const isDev = process.env.NODE_ENV === 'development';
 
 /**
  * Function to test the connection with the backend
- * IMPROVED: More resilient with multiple retry attempts
+ * Uses our enhanced URL utilities for better security
  */
 export const testBackendConnection = async () => {
   // Try multiple API endpoints for health check
@@ -19,10 +18,7 @@ export const testBackendConnection = async () => {
         console.log("Testing connection with:", endpoint);
       }
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
-      
-      // Use GET with proper headers - more likely to succeed than HEAD
+      // Use standard fetch for health checks with timeout
       const response = await fetch(endpoint, { 
         mode: 'cors',
         method: 'GET',
@@ -33,13 +29,11 @@ export const testBackendConnection = async () => {
           "X-Development-Mode": isDev ? "1" : "0",
           "X-Requested-With": "XMLHttpRequest"
         },
-        signal: controller.signal,
+        signal: AbortSignal.timeout(5000), // 5 seconds timeout using modern API
         cache: 'no-store',
         // Only block redirects in production
         redirect: isDev ? 'follow' : 'error'
       });
-      
-      clearTimeout(timeoutId);
       
       if (response.ok) {
         if (isDev) {
@@ -48,10 +42,9 @@ export const testBackendConnection = async () => {
         return true;
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log(`Backend connection test timed out for endpoint: ${endpoint}`);
-      } else if (isDev) {
-        console.log(`Backend endpoint ${endpoint} not available:`, error.message);
+      if (isDev) {
+        console.log(`Backend endpoint ${endpoint} not available:`, 
+                   error.name === 'AbortError' ? 'timeout' : error.message);
       }
       // Continue to try next endpoint
     }
@@ -64,7 +57,6 @@ export const testBackendConnection = async () => {
 
 /**
  * Function to check for redirections by AWS load balancer
- * IMPROVED: More resilient with fallback approaches
  */
 export const testAWSConnection = async () => {
   // Try multiple approaches to check AWS connection
@@ -78,9 +70,6 @@ export const testAWSConnection = async () => {
     try {
       console.log(`Testing AWS connection with ${method} ${endpoint}`);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
       const response = await fetch(endpoint, { 
         mode: 'cors',
         method,
@@ -89,18 +78,15 @@ export const testAWSConnection = async () => {
           "X-No-Redirect": "1",
           "Cache-Control": "no-cache"
         },
-        signal: controller.signal,
+        signal: AbortSignal.timeout(5000),
         // In development, allow following redirects
         redirect: isDev ? 'follow' : 'error'
       });
       
-      clearTimeout(timeoutId);
-      
       if (response.ok) {
         console.log(`AWS connection successful with ${method} ${endpoint}`);
         
-        // Check if the response URL is different than the requested URL
-        // This indicates a redirect happened
+        // Check for redirections
         if (response.url && !response.url.includes(endpoint)) {
           console.warn(`⚠️ AWS connection succeeded but with redirect: ${endpoint} -> ${response.url}`);
           
@@ -125,16 +111,22 @@ export const testAWSConnection = async () => {
 };
 
 /**
- * New function to test a specific ML endpoint without triggering redirects
+ * Test a specific ML endpoint without triggering redirects
  */
 export const testMlEndpoint = async (endpoint: string) => {
   try {
-    // Make sure the endpoint is relative
-    const relativeEndpoint = extractApiPath(endpoint);
+    // Make sure the endpoint is relative and validate it's an ML endpoint
+    const relativeEndpoint = UrlUtility.toRelativeApiUrl(endpoint);
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    // For ML endpoints, perform additional validation
+    if (endpoint.includes('/ml/') && !UrlUtility.isValidMlEndpoint(relativeEndpoint)) {
+      return {
+        success: false,
+        error: 'Invalid ML endpoint format'
+      };
+    }
     
+    // Use HEAD request for testing to minimize data transfer
     const response = await fetch(relativeEndpoint, {
       method: 'HEAD',
       headers: {
@@ -143,14 +135,12 @@ export const testMlEndpoint = async (endpoint: string) => {
         "Cache-Control": "no-cache, no-store",
         "Pragma": "no-cache"
       },
-      signal: controller.signal,
+      signal: AbortSignal.timeout(5000),
       mode: 'cors',
       credentials: 'include',
       cache: 'no-store',
       redirect: 'error'
     });
-    
-    clearTimeout(timeoutId);
     
     return {
       success: response.ok,

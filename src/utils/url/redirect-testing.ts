@@ -1,7 +1,5 @@
 
-/**
- * Redirect testing utilities for diagnosing URL issues
- */
+import { UrlUtility } from "./UrlUtility";
 
 /**
  * Define the RedirectTest interface at the beginning of the file
@@ -17,13 +15,29 @@ export interface RedirectTest {
 
 /**
  * Test redirects for potential issues
+ * Enhanced with our new URL utilities
  */
 export const testRedirects = async (url: string): Promise<RedirectTest[]> => {
   const results: RedirectTest[] = [];
   
+  // Only test URLs that look safe to test
+  if (!url || UrlUtility.isRedirectAttempt(url)) {
+    results.push({
+      url,
+      redirected: false,
+      error: 'URL looks suspicious and was not tested'
+    });
+    return results;
+  }
+  
   // Test the URL for redirects
   try {
-    const response = await fetch(url, { redirect: 'manual' });
+    const response = await fetch(url, { 
+      redirect: 'manual',
+      cache: 'no-store', 
+      headers: { 'X-No-Redirect': '1' },
+      signal: AbortSignal.timeout(5000)
+    });
     
     // Check if we got redirected
     if (response.redirected) {

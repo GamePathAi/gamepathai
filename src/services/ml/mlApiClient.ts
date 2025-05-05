@@ -33,7 +33,7 @@ interface ApiCache {
 
 // Define an empty apiCache object to use as fallback
 const apiCache: ApiCache = {
-  getOrFetch: async (key, fetchFn) => fetchFn(),
+  getOrFetch: async <T>(key: string, fetchFn: () => Promise<T>) => fetchFn(),
   clearAll: () => {}
 };
 
@@ -79,9 +79,9 @@ export const mlApiClient = {
       const cacheKey = `ml:${url}:${JSON.stringify(options.body || {})}`;
       
       try {
-        // Fix: Remove type parameters for untyped function calls
+        // Fix: Use correct type for the function call
         return await apiCache.getOrFetch(cacheKey, async () => {
-          return await this.performFetch(url, headers, options) as T;
+          return await this.performFetch(url, headers, options);
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT
         });
@@ -92,13 +92,13 @@ export const mlApiClient = {
     }
     
     // Regular fetch without caching
-    return await this.performFetch(url, headers, options) as T;
+    return await this.performFetch(url, headers, options);
   },
   
   /**
    * Perform the actual fetch with ML-specific settings
    */
-  async performFetch<T>(url: string, headers: Record<string, string>, options: RequestInit): Promise<T> {
+  async performFetch(url: string, headers: Record<string, string>, options: RequestInit): Promise<any> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout for ML
@@ -118,7 +118,7 @@ export const mlApiClient = {
       
       if (response.status === 204) {
         // No content response
-        return {} as T;
+        return {};
       }
       
       // MODIFIED: Log but allow redirects in development
@@ -146,7 +146,7 @@ export const mlApiClient = {
         }
       }
       
-      return await response.json() as T;
+      return await response.json();
     } catch (error: any) {
       // Log ML API errors for debugging
       console.error('🚨 ML API error:', error);
@@ -164,7 +164,7 @@ export const mlApiClient = {
     cacheTTL?: number
   ): Promise<T> {
     try {
-      return await this.fetch(endpoint, options, cacheTTL);
+      return await this.fetch<T>(endpoint, options, cacheTTL);
     } catch (error: any) {
       // Check if we have retries left
       if (retries > 0) {

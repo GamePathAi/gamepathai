@@ -54,6 +54,7 @@ export const gamesService = {
           image: "https://placehold.co/600x400/1A2033/ffffff?text=Apex%20Legends",
           isOptimized: false,
           genre: "Battle Royale",
+          lastPlayed: Date.now(),
           optimizationType: "none"
         },
         {
@@ -62,6 +63,7 @@ export const gamesService = {
           image: "https://placehold.co/600x400/1A2033/ffffff?text=Counter-Strike%202",
           isOptimized: false,
           genre: "FPS",
+          lastPlayed: Date.now(),
           optimizationType: "none"
         },
         {
@@ -70,6 +72,7 @@ export const gamesService = {
           image: "https://placehold.co/600x400/1A2033/ffffff?text=Valorant",
           isOptimized: false,
           genre: "FPS Tático",
+          lastPlayed: Date.now(),
           optimizationType: "none"
         },
         // NOVO: Mais jogos mockados para melhor visualização
@@ -79,6 +82,7 @@ export const gamesService = {
           image: "https://placehold.co/600x400/1A2033/ffffff?text=Fortnite",
           isOptimized: false,
           genre: "Battle Royale",
+          lastPlayed: Date.now(),
           optimizationType: "none"
         },
         {
@@ -87,6 +91,7 @@ export const gamesService = {
           image: "https://placehold.co/600x400/1A2033/ffffff?text=League%20of%20Legends",
           isOptimized: false,
           genre: "MOBA",
+          lastPlayed: Date.now(),
           optimizationType: "none"
         }
       ];

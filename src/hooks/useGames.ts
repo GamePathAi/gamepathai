@@ -30,6 +30,7 @@ export function useGames() {
         console.log("⚠️ Falling back to mock games data due to API error");
         try {
           // Try to use ML client for game detection as fallback
+          const { mlService } = await import("@/services/ml/mlService");
           const mlDetectedGames = await mlService.detectGames();
           if (mlDetectedGames?.detectedGames?.length > 0) {
             console.log("✅ Successfully detected games using ML service");
@@ -60,6 +61,7 @@ export function useGames() {
       
       try {
         // First try the ML service
+        const { mlService } = await import("@/services/ml/mlService");
         return await mlService.optimizeGame(gameId);
       } catch (mlError: any) {
         console.error("🚨 ML optimization failed:", mlError.message);

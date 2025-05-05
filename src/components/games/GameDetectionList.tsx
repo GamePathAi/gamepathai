@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, RefreshCw, AlertCircle, Check } from 'lucide-react';
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useSecureGameDetection } from '@/hooks/useSecureGameDetection';
 import { MLDetectedGamesResponse } from '@/services/ml';
+import { Game } from '@/hooks/useGames';
 
 const GameDetectionList = () => {
   const { t } = useTranslation();
@@ -25,7 +27,7 @@ const GameDetectionList = () => {
     const fetchMlGames = async () => {
       try {
         setIsLoadingMl(true);
-        const mlService = (await import('@/services/ml/mlService')).mlService;
+        const { mlService } = await import('@/services/ml/mlService');
         const mlDetection = await mlService.detectGames();
         setMlGames(mlDetection.detectedGames);
       } catch (error) {
@@ -61,6 +63,7 @@ const GameDetectionList = () => {
     try {
       await detectGames();
       setIsLoadingMl(true);
+      const { mlService } = await import('@/services/ml/mlService');
       const mlDetection = await mlService.detectGames();
       setMlGames(mlDetection.detectedGames);
       setIsLoadingMl(false);
@@ -72,6 +75,23 @@ const GameDetectionList = () => {
       toast.error(t("games.detection.error"), {
         description: t("games.detection.refreshFailed")
       });
+    }
+  };
+  
+  // Handle game optimization
+  const handleOptimizeGame = async (gameId: string, gameName: string) => {
+    try {
+      const { mlService } = await import('@/services/ml/mlService');
+      return toast.promise(
+        mlService.optimizeGame(gameId),
+        {
+          loading: t('games.optimizing', {name: gameName}),
+          success: t('games.optimized', {name: gameName}),
+          error: t('games.optimizeFailed', {name: gameName})
+        }
+      );
+    } catch (error) {
+      console.error("Game optimization failed:", error);
     }
   };
   
@@ -140,16 +160,7 @@ const GameDetectionList = () => {
                   <div className="text-xs text-gray-500">{game.path || 'Unknown location'}</div>
                 </div>
                 <div>
-                  <Button size="sm" variant="ghost" onClick={() => {
-                    toast.promise(
-                      mlService.optimizeGame(game.id),
-                      {
-                        loading: t('games.optimizing', {name: game.name}),
-                        success: t('games.optimized', {name: game.name}),
-                        error: t('games.optimizeFailed', {name: game.name})
-                      }
-                    );
-                  }}>
+                  <Button size="sm" variant="ghost" onClick={() => handleOptimizeGame(game.id, game.name)}>
                     {t('games.optimize')}
                   </Button>
                 </div>

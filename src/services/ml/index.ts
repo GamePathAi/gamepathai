@@ -11,11 +11,11 @@ export type {
   MLConnectivityTestResult,
   MLRedirectProtectionResult,
   MLExtensionCheckResult,
-  MLUrlTestResult
+  MLUrlTestResult,
+  MLOptimizationOptions
 } from './types';
 
 export * from './mlUrlDiagnostics';
 
-// Re-export the mlService module for backward compatibility
-// when imported directly through lazy loading
-export * from './mlService';
+// Instead of re-exporting mlService directly, we'll let consumers import it dynamically
+// to avoid circular dependencies

@@ -185,3 +185,4 @@ export const detectSandboxEnvironment = (): boolean => {
     (navigator.serviceWorker && 'serviceWorker' in navigator === false)
   );
 };
+

@@ -123,7 +123,9 @@ export const gamesService = {
         console.log("⚠️ Retornando resposta simulada de otimização");
         return {
           success: true,
-          optimizationType: "both", // This matches the type in MLOptimizeGameResponse now
+          // FIXED: Add missing gameId property to match MLOptimizeGameResponse type
+          gameId: gameId,
+          optimizationType: "both", 
           improvements: {
             latency: 25,
             fps: 15,

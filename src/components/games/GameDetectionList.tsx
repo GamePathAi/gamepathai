@@ -45,7 +45,9 @@ const GameDetectionList = () => {
       combinedGames.push({
         ...mlGame,
         path: mlGame.installPath || '',
-        platform: 'ML Detection'
+        platform: 'ML Detection',
+        // FIXED: Add missing lastPlayed property required by Game type
+        lastPlayed: Date.now() // Default to current timestamp
       });
     }
   });

@@ -1,4 +1,3 @@
-
 /**
  * Environment detection utilities for handling different modes
  */
@@ -31,7 +30,8 @@ export const isElectron = (): boolean => {
   // Electron defines window.process, browser doesn't
   return typeof window !== 'undefined' && 
     typeof window.process === 'object' && 
-    window.process.type === 'renderer';
+    // FIXED: Check renderer type safely with optional chaining
+    window.process?.type === 'renderer';
 };
 
 /**
@@ -41,7 +41,8 @@ export const isElectronMain = (): boolean => {
   return typeof process !== 'undefined' && 
     process.versions && 
     !!process.versions.electron && 
-    process.type !== 'renderer';
+    // FIXED: Access 'type' safely with optional chaining
+    process?.type !== 'renderer';
 };
 
 /**

@@ -4,7 +4,7 @@
  */
 
 import { UrlUtility } from './UrlUtility';
-import { isProduction } from './environmentDetection';
+import { isProduction, isDevelopment } from './environmentDetection';
 import { apiCache } from '../api/cacheManager';
 import { 
   detectRedirectAttempt, 
@@ -12,7 +12,15 @@ import {
   isExpectedRedirect 
 } from './redirectDetection';
 
-export interface ApiRequestOptions extends RequestInit {
+// FIXED: Define a separate cache interface that doesn't conflict with RequestInit
+interface ApiRequestCache {
+  enabled: boolean;
+  ttl?: number;
+  forceRefresh?: boolean;
+}
+
+// FIXED: No longer extends RequestInit directly
+export interface ApiRequestOptions extends Omit<RequestInit, 'cache'> {
   /**
    * Whether this request is for an ML operation (higher security)
    */
@@ -31,14 +39,7 @@ export interface ApiRequestOptions extends RequestInit {
   /**
    * Caching options
    */
-  cache?: {
-    /** Enable caching for this request */
-    enabled: boolean;
-    /** Time to live in milliseconds */
-    ttl?: number;
-    /** Force refresh the cache */
-    forceRefresh?: boolean;
-  };
+  cache?: ApiRequestCache;
   
   /**
    * Retry options
@@ -61,9 +62,8 @@ export const secureFetch = async <T>(url: string, options: ApiRequestOptions = {
   const secureUrl = UrlUtility.sanitizeApiUrl(url);
   
   // Check for redirect attempts - be more permissive in development
-  const isDevelopment = process.env.NODE_ENV === 'development';
   if (detectRedirectAttempt(secureUrl, options.isMlOperation)) {
-    if (isDevelopment) {
+    if (isDevelopment()) {
       console.warn(`⚠️ Potential redirect detected but allowing in development mode: ${secureUrl}`);
     } else {
       throw new Error(`Blocked potential redirect attempt to: ${secureUrl}`);
@@ -121,7 +121,7 @@ const performFetch = async <T>(secureUrl: string, options: ApiRequestOptions = {
   }
   
   // Add development header if in dev mode
-  if (!isProduction()) {
+  if (isDevelopment()) {
     headers["X-Development-Mode"] = "1";
   }
   
@@ -139,7 +139,7 @@ const performFetch = async <T>(secureUrl: string, options: ApiRequestOptions = {
       credentials: 'include',
       cache: 'no-store',
       // CHANGE: Allow redirects in development mode for easier debugging
-      redirect: isDevelopment ? 'follow' : 'error',
+      redirect: isDevelopment() ? 'follow' : 'error',
       signal: controller.signal
     });
     
@@ -147,14 +147,14 @@ const performFetch = async <T>(secureUrl: string, options: ApiRequestOptions = {
     if (timeoutId) clearTimeout(timeoutId);
     
     // In development, log redirects but don't block them
-    if (isDevelopment && response.redirected) {
+    if (isDevelopment() && response.redirected) {
       console.warn('⚠️ Redirect detected:', {
         from: secureUrl,
         to: response.url
       });
     }
     // In production, verify response is not a redirect (unless expected)
-    else if (!isDevelopment && response.redirected) {
+    else if (!isDevelopment() && response.redirected) {
       const isAllowed = isExpectedRedirect(secureUrl, response.url);
       
       if (!isAllowed) {
@@ -227,8 +227,8 @@ const performFetch = async <T>(secureUrl: string, options: ApiRequestOptions = {
       // Wait for delay
       await new Promise(resolve => setTimeout(resolve, delay));
       
-      // Retry with one less retry count
-      return secureFetch<T>(url, {
+      // FIXED: Use correct variable name
+      return secureFetch<T>(secureUrl, {
         ...options,
         retry: {
           ...options.retry,

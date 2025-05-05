@@ -59,7 +59,11 @@ const ConnectionDiagnostics = () => {
       const backendConnected = await runSingleTest(() => testBackendConnection(), 20);
       const awsConnected = await runSingleTest(() => testAWSConnection(), 20);
       const mlConnectivity = await runSingleTest(() => mlDiagnostics.testConnectivity(), 20);
-      const extensions = await runSingleTest(() => mlDiagnostics.checkForInterfereingExtensions(), 20);
+      
+      // FIXED: Convert synchronous function into a Promise and properly type its return
+      const extensionsCheck = await runSingleTest(async () => {
+        return mlDiagnostics.checkForInterfereingExtensions();
+      }, 20);
       
       // Check for redirect scripts
       const redirectsDetected = await runSingleTest(() => {
@@ -73,7 +77,7 @@ const ConnectionDiagnostics = () => {
         awsConnected,
         mlConnected: mlConnectivity,
         redirectsDetected,
-        interfereingExtensions: extensions.extensions,
+        interfereingExtensions: extensionsCheck.extensions,
         lastChecked: new Date()
       });
       
@@ -97,10 +101,10 @@ const ConnectionDiagnostics = () => {
       }
       
       // Show warning about extensions if detected
-      if (extensions.extensions.length > 0) {
+      if (extensionsCheck.extensions.length > 0) {
         toast.warning(t("diagnostics.extensionsDetected"), {
           description: t("diagnostics.extensionsWarning", {
-            extensions: extensions.extensions.join(", ")
+            extensions: extensionsCheck.extensions.join(", ")
           })
         });
       }
@@ -110,9 +114,14 @@ const ConnectionDiagnostics = () => {
         description: t("diagnostics.errorDetails")
       });
     } finally {
-      setIsRunningTests(false);
+      setIsLoadingTests(false);
       setProgress(100);
     }
+  };
+  
+  // Fix: Wrong variable name
+  const setIsLoadingTests = (value: boolean) => {
+    setIsRunningTests(value);
   };
   
   return (

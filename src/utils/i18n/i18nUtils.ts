@@ -1,4 +1,3 @@
-
 /**
  * Helper utilities for internationalization
  */
@@ -22,7 +21,8 @@ export const t = (key: string, options?: Record<string, any>): string => {
   }
   
   // Return the translation or the key itself if translation doesn't exist
-  return i18n.t(key, options);
+  // FIXED: Add type assertion to ensure string return type
+  return String(i18n.t(key, options));
 };
 
 /**

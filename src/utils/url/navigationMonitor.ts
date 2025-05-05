@@ -52,3 +52,31 @@ export const setupNavigationMonitor = () => {
     console.log('🛡️ Navigation protection active');
   }
 };
+
+/**
+ * Detect and warn about redirect scripts injected in the page
+ */
+export const detectRedirectScripts = (): boolean => {
+  if (typeof document === 'undefined') return false;
+  
+  // Check for suspicious script tags
+  const scripts = document.querySelectorAll('script');
+  let found = false;
+  
+  scripts.forEach(script => {
+    const src = script.getAttribute('src') || '';
+    const content = script.textContent || '';
+    
+    if (
+      src.includes('redirect') || 
+      src.includes('gamepathai.com') ||
+      content.includes('window.location') || 
+      content.includes('redirect')
+    ) {
+      console.warn('🔍 Detected suspicious script:', src || '[inline script]');
+      found = true;
+    }
+  });
+  
+  return found;
+};

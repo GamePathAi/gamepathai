@@ -8,7 +8,7 @@ import { getApiBaseUrl } from './apiBaseUrl';
 import { validateMlEndpoint, isTrustedDomain, detectRedirectAttempt } from './redirectDetection';
 import { fixAbsoluteUrl, sanitizeApiUrl, extractApiPath } from './urlSanitization';
 import { isUrlSafe, isCorsOrRedirectError } from './url-safety';
-import { detectRedirectScripts, setupNavigationMonitor } from './navigationMonitor';
+import { setupNavigationMonitor, detectRedirectScripts } from './navigationMonitor';
 import { isProduction } from './environmentDetection';
 
 export class UrlUtility {

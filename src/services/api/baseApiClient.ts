@@ -2,6 +2,12 @@
 import { secureFetch } from "../../utils/url/ApiInterceptor";
 import { UrlUtility } from "../../utils/url/UrlUtility";
 
+// Define a interface para a resposta de token
+interface TokenResponse {
+  access_token: string;
+  refresh_token?: string;
+}
+
 // Remove noisy logging and only log in development
 const isDev = process.env.NODE_ENV === 'development';
 if (isDev) {
@@ -36,7 +42,7 @@ async function tryRenewToken() {
     const url = `/auth/refresh-token`;
     
     // Use secureFetch directly for auth operations
-    const response = await secureFetch(url, {
+    const response = await secureFetch<TokenResponse>(url, {
       method: "POST",
       skipAuth: true, // Skip adding the expired auth token
       body: JSON.stringify({ refresh_token: refreshToken })

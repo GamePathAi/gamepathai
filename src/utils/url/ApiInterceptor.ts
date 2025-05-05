@@ -6,7 +6,7 @@
 import { UrlUtility } from './UrlUtility';
 import { isProduction } from './environmentDetection';
 
-interface ApiRequestOptions extends RequestInit {
+export interface ApiRequestOptions extends RequestInit {
   /**
    * Whether this request is for an ML operation (higher security)
    */

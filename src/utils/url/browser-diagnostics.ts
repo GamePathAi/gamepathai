@@ -142,8 +142,8 @@ const detectBrowserExtensions = (): boolean => {
     // Extension prototypes (this is how we detect ad blockers)
     (typeof window !== 'undefined' && 
      'chrome' in window && 
-     window.chrome && 
-     'runtime' in window.chrome)
+     (window.chrome as Record<string, unknown>) && 
+     'runtime' in (window.chrome as Record<string, unknown>))
   );
   
   return hasExtensions;
@@ -196,3 +196,4 @@ export const detectSandboxEnvironment = (): boolean => {
     (navigator.serviceWorker && 'serviceWorker' in navigator === false)
   );
 };
+

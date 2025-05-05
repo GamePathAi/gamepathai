@@ -3,14 +3,13 @@
 export * from './mlApiClient';
 export * from './mlApiTypes';
 export * from './mlDiagnostics';
-export { mlCache, CACHE_TTL } from './mlCacheManager'; // Export from the core implementation
+export { mlCache, CACHE_TTL } from './mlCacheManager'; // Exportar apenas da implementação central
 
 // Export specialized service modules
 export * from './routeOptimizer';
 export * from './performancePredictor';
 export * from './gameDetection';
 export * from './gameOptimizer';
-export * from './cacheService';
 export * from './diagnosticService';
 
 // Export types explicitly

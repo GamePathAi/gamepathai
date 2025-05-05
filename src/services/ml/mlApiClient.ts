@@ -5,8 +5,7 @@
  */
 import { apiClient } from "./core/apiClient";
 import { retryHandler } from "./retry/retryHandler";
-import { mlCache } from "./cache/cacheManager";
-import { MLApiRequestOptions } from "./types/config";
+import { mlCache } from "./mlCacheManager"; // Usar a implementação central do cache
 
 /**
  * ML API client with specialized configuration for machine learning operations

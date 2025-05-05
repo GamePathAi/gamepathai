@@ -139,7 +139,7 @@ export const mlApiClient = {
   
   /**
    * Create a retry wrapper for ML operations that may sometimes fail
-   * Uses type assertion instead of generic type parameter in recursive call
+   * Fix: Removing the generic type parameter in the recursive call
    */
   async withRetry<T>(
     endpoint: string, 

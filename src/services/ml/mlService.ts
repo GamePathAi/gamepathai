@@ -2,13 +2,63 @@
 /**
  * ML service handlers for specific machine learning models
  */
-import { mlApiClient } from './mlApiClient';
-import { 
-  MLRouteOptimizerResponse, 
-  MLPerformancePredictorResponse, 
-  MLDetectedGamesResponse, 
-  MLOptimizeGameResponse 
-} from './types';
+import { mlApiClient, mlDiagnostics } from './mlApiClient';
+import { apiCache } from '../../utils/api/cacheManager';
+import { toast } from "sonner";
+
+// Cache TTL constants
+const CACHE_TTL = {
+  ROUTES: 30 * 60 * 1000,      // 30 min for route optimization
+  PERFORMANCE: 60 * 60 * 1000, // 1 hour for performance predictions
+  GAMES: 15 * 60 * 1000,       // 15 min for game detection
+  OPTIMIZE: 60 * 60 * 1000     // 1 hour for game optimization
+};
+
+/**
+ * Type definitions for ML responses
+ */
+export interface MLRouteOptimizerResponse {
+  success: boolean;
+  routes: {
+    optimized: boolean;
+    latencyReduction: number;
+    stabilityImprovement: number;
+    recommendations: string[];
+  };
+}
+
+export interface MLPerformancePredictorResponse {
+  success: boolean;
+  predictions: {
+    fps: number;
+    stability: number;
+    recommendations: {
+      settings: Record<string, any>;
+      priority: 'high' | 'medium' | 'low';
+    }[];
+  };
+}
+
+export interface MLDetectedGamesResponse {
+  success: boolean;
+  detectedGames: Array<{
+    id: string;
+    name: string;
+    executable: string;
+    installPath?: string;
+  }>;
+}
+
+export interface MLOptimizeGameResponse {
+  success: boolean;
+  gameId: string;
+  optimizationType: "network" | "system" | "both" | "none";
+  improvements?: {
+    latency?: number;
+    fps?: number;
+    stability?: number;
+  };
+}
 
 /**
  * ML service handlers for specific machine learning models
@@ -21,36 +71,66 @@ export const mlService = {
     region?: string,
     aggressiveness?: 'low' | 'medium' | 'high'
   } = {}): Promise<MLRouteOptimizerResponse> => {
-    return mlApiClient.withRetry<MLRouteOptimizerResponse>(
-      `/ml/route-optimizer/${gameId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(params),
-      }
-    );
+    try {
+      return await mlApiClient.withRetry<MLRouteOptimizerResponse>(
+        `/ml/route-optimizer/${gameId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(params),
+        },
+        3, // retries
+        CACHE_TTL.ROUTES
+      );
+    } catch (error) {
+      console.error('Route optimization failed:', error);
+      toast.error("Falha na otimização de rotas", {
+        description: "Não foi possível otimizar as rotas de rede"
+      });
+      throw error;
+    }
   },
   
   /**
    * Performance predictor model: Predicts optimal settings for games
    */
   predictPerformance: async (gameId: string, systemSpecs: any): Promise<MLPerformancePredictorResponse> => {
-    return mlApiClient.withRetry<MLPerformancePredictorResponse>(
-      `/ml/performance-predictor/${gameId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ systemSpecs }),
-      }
-    );
+    try {
+      return await mlApiClient.withRetry<MLPerformancePredictorResponse>(
+        `/ml/performance-predictor/${gameId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ systemSpecs }),
+        },
+        3, // retries
+        CACHE_TTL.PERFORMANCE
+      );
+    } catch (error) {
+      console.error('Performance prediction failed:', error);
+      toast.error("Falha na previsão de performance", {
+        description: "Não foi possível prever as configurações ideais"
+      });
+      throw error;
+    }
   },
   
   /**
    * Game detection model: Detects installed games and their state
    */
   detectGames: async (): Promise<MLDetectedGamesResponse> => {
-    return mlApiClient.withRetry<MLDetectedGamesResponse>(
-      '/ml/game-detection',
-      { method: 'GET' }
-    );
+    try {
+      return await mlApiClient.withRetry<MLDetectedGamesResponse>(
+        '/ml/game-detection',
+        { method: 'GET' },
+        3, // retries
+        CACHE_TTL.GAMES
+      );
+    } catch (error) {
+      console.error('Game detection failed:', error);
+      toast.error("Falha na detecção de jogos", {
+        description: "Não foi possível detectar os jogos instalados"
+      });
+      throw error;
+    }
   },
   
   /**
@@ -76,12 +156,66 @@ export const mlService = {
       options: finalOptions
     });
     
-    return mlApiClient.withRetry<MLOptimizeGameResponse>(
-      `/ml/optimize-game/${gameId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(finalOptions),
+    try {
+      toast.loading(`Otimizando ${gameId}...`);
+      
+      const result = await mlApiClient.withRetry<MLOptimizeGameResponse>(
+        `/ml/optimize-game/${gameId}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(finalOptions),
+        },
+        3, // retries
+        CACHE_TTL.OPTIMIZE
+      );
+      
+      if (result.success) {
+        toast.success("Otimização concluída", {
+          description: `Jogo ${gameId} otimizado com sucesso`
+        });
       }
-    );
+      
+      return result;
+    } catch (error) {
+      console.error('Game optimization failed:', error);
+      toast.error("Falha na otimização do jogo", {
+        description: `Não foi possível otimizar o jogo ${gameId}`
+      });
+      throw error;
+    }
+  },
+  
+  /**
+   * Clear all ML caches
+   */
+  clearCache: () => {
+    mlApiClient.clearCache('ml');
+    toast.success("Cache ML limpo", {
+      description: "Os dados em cache do ML foram limpos"
+    });
+  },
+  
+  /**
+   * Run diagnostics and return results
+   */
+  runDiagnostics: async () => {
+    toast.loading("Executando diagnósticos ML...");
+    try {
+      const results = await mlDiagnostics.runDiagnostics();
+      
+      toast.success("Diagnósticos concluídos", {
+        description: `Conectividade ML: ${results.health ? 'OK' : 'Falha'}`
+      });
+      
+      return results;
+    } catch (error) {
+      toast.error("Falha nos diagnósticos", {
+        description: "Não foi possível executar os diagnósticos ML"
+      });
+      throw error;
+    }
   }
 };
+
+// Export diagnostics
+export { mlDiagnostics };

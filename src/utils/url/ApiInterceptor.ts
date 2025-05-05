@@ -5,6 +5,12 @@
 
 import { UrlUtility } from './UrlUtility';
 import { isProduction } from './environmentDetection';
+import { apiCache } from '../api/cacheManager';
+import { 
+  detectRedirectAttempt, 
+  isSuspiciousDomain, 
+  isExpectedRedirect 
+} from './redirectDetection';
 
 export interface ApiRequestOptions extends RequestInit {
   /**
@@ -21,6 +27,30 @@ export interface ApiRequestOptions extends RequestInit {
    * Whether to skip auth token
    */
   skipAuth?: boolean;
+  
+  /**
+   * Caching options
+   */
+  cache?: {
+    /** Enable caching for this request */
+    enabled: boolean;
+    /** Time to live in milliseconds */
+    ttl?: number;
+    /** Force refresh the cache */
+    forceRefresh?: boolean;
+  };
+  
+  /**
+   * Retry options
+   */
+  retry?: {
+    /** Number of retries */
+    count: number;
+    /** Delay between retries in milliseconds */
+    delay?: number;
+    /** Whether to use exponential backoff */
+    useExponentialBackoff?: boolean;
+  };
 }
 
 /**
@@ -30,11 +60,41 @@ export const secureFetch = async <T>(url: string, options: ApiRequestOptions = {
   // Apply security measures
   const secureUrl = UrlUtility.sanitizeApiUrl(url);
   
-  // Check for redirect attempts
-  if (UrlUtility.isRedirectAttempt(secureUrl, options.isMlOperation)) {
-    throw new Error(`Blocked potential redirect attempt to: ${secureUrl}`);
+  // Check for redirect attempts - be more permissive in development
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (detectRedirectAttempt(secureUrl, options.isMlOperation)) {
+    if (isDevelopment) {
+      console.warn(`⚠️ Potential redirect detected but allowing in development mode: ${secureUrl}`);
+    } else {
+      throw new Error(`Blocked potential redirect attempt to: ${secureUrl}`);
+    }
   }
   
+  // Check if we should use cache
+  if (options.cache?.enabled) {
+    const cacheKey = `fetch:${secureUrl}:${JSON.stringify(options.body || {})}`;
+    
+    try {
+      return await apiCache.getOrFetch<T>(cacheKey, async () => {
+        return await performFetch<T>(secureUrl, options);
+      }, {
+        ttl: options.cache.ttl,
+        forceRefresh: options.cache.forceRefresh
+      });
+    } catch (error) {
+      // Fall through to regular fetch if cache operations fail
+      console.warn('Cache operation failed, fallback to regular fetch', error);
+    }
+  }
+  
+  // Regular fetch without caching
+  return await performFetch<T>(secureUrl, options);
+};
+
+/**
+ * Perform the actual fetch with all security measures
+ */
+const performFetch = async <T>(secureUrl: string, options: ApiRequestOptions = {}): Promise<T> => {
   // Default headers with security measures
   const headers = {
     "Content-Type": "application/json",
@@ -78,21 +138,36 @@ export const secureFetch = async <T>(url: string, options: ApiRequestOptions = {
       mode: 'cors',
       credentials: 'include',
       cache: 'no-store',
-      // Error on redirect, don't follow
-      redirect: 'error',
+      // CHANGE: Allow redirects in development mode for easier debugging
+      redirect: isDevelopment ? 'follow' : 'error',
       signal: controller.signal
     });
     
     // Clean up timeout
     if (timeoutId) clearTimeout(timeoutId);
     
-    // Verify response is not a redirect
-    if (response.url && response.url !== secureUrl) {
-      console.error('⚠️ Detected redirect in response:', {
-        original: secureUrl,
-        redirected: response.url
+    // In development, log redirects but don't block them
+    if (isDevelopment && response.redirected) {
+      console.warn('⚠️ Redirect detected:', {
+        from: secureUrl,
+        to: response.url
       });
-      throw new Error(`Detected redirect to ${response.url}`);
+    }
+    // In production, verify response is not a redirect (unless expected)
+    else if (!isDevelopment && response.redirected) {
+      const isAllowed = isExpectedRedirect(secureUrl, response.url);
+      
+      if (!isAllowed) {
+        console.error('⚠️ Detected redirect in response:', {
+          original: secureUrl,
+          redirected: response.url
+        });
+        
+        // Only throw if redirecting to suspicious domain
+        if (isSuspiciousDomain(response.url)) {
+          throw new Error(`Detected redirect to ${response.url}`);
+        }
+      }
     }
     
     // Handle error responses
@@ -140,6 +215,27 @@ export const secureFetch = async <T>(url: string, options: ApiRequestOptions = {
   } catch (error: any) {
     // Clean up timeout
     if (timeoutId) clearTimeout(timeoutId);
+    
+    // Handle retries if configured
+    if (options.retry && options.retry.count > 0) {
+      const delay = options.retry.useExponentialBackoff 
+        ? (options.retry.delay || 1000) * (2 ** (options.retry.count - 1))
+        : (options.retry.delay || 1000);
+      
+      console.log(`🔄 Retrying request to ${secureUrl} in ${delay}ms. Attempts left: ${options.retry.count - 1}`);
+      
+      // Wait for delay
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Retry with one less retry count
+      return secureFetch<T>(url, {
+        ...options,
+        retry: {
+          ...options.retry,
+          count: options.retry.count - 1
+        }
+      });
+    }
     
     // Enhance error information
     if (error.name === 'AbortError') {

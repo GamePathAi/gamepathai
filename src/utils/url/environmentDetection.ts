@@ -1,43 +1,92 @@
 
 /**
- * Environment detection utilities
+ * Environment detection utilities for handling different modes
  */
 
-import { DOMAINS } from './constants';
-
 /**
- * Checks if the application is running in the production environment
+ * Check if we are in production mode
  */
 export const isProduction = (): boolean => {
-  return typeof window !== 'undefined' && 
-         window.location.hostname === DOMAINS.PRODUCTION;
+  return process.env.NODE_ENV === 'production';
 };
 
 /**
- * Checks if the application is running in Electron
+ * Check if we are in development mode
+ */
+export const isDevelopment = (): boolean => {
+  return process.env.NODE_ENV === 'development';
+};
+
+/**
+ * Check if we are in test mode
+ */
+export const isTest = (): boolean => {
+  return process.env.NODE_ENV === 'test';
+};
+
+/**
+ * Check if we are in Electron environment
  */
 export const isElectron = (): boolean => {
-  // Verify if running in Electron
+  // Electron defines window.process, browser doesn't
   return typeof window !== 'undefined' && 
-         window.navigator.userAgent.toLowerCase().indexOf(' electron/') > -1;
+    typeof window.process === 'object' && 
+    window.process.type === 'renderer';
 };
 
 /**
- * Check if we're in a trusted development environment
+ * Check if we are in Electron main process
  */
-export const isTrustedDevelopmentEnvironment = (): boolean => {
-  if (typeof window === 'undefined') return false;
+export const isElectronMain = (): boolean => {
+  return typeof process !== 'undefined' && 
+    process.versions && 
+    !!process.versions.electron && 
+    process.type !== 'renderer';
+};
+
+/**
+ * Check if we are running inside AWS Lambda
+ */
+export const isAWSLambda = (): boolean => {
+  return typeof process !== 'undefined' && 
+    !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+};
+
+/**
+ * Get the current environment name
+ */
+export const getEnvironmentName = (): string => {
+  if (isProduction()) {
+    return 'production';
+  } else if (isDevelopment()) {
+    return 'development';
+  } else if (isTest()) {
+    return 'test';
+  } else {
+    return 'unknown';
+  }
+};
+
+/**
+ * Get environment-specific config
+ */
+export const getEnvironmentConfig = <T extends Record<string, any>>(
+  configs: {
+    production?: T;
+    development?: T;
+    test?: T;
+    default: T;
+  }
+): T => {
+  const env = getEnvironmentName();
   
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  // Check if we're in localhost with expected dev ports
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    // Common development ports (Vite, React, etc)
-    if (port === '8080' || port === '3000' || port === '5173' || port === '') {
-      return true;
-    }
+  if (env === 'production' && configs.production) {
+    return configs.production;
+  } else if (env === 'development' && configs.development) {
+    return configs.development;
+  } else if (env === 'test' && configs.test) {
+    return configs.test;
   }
   
-  return false;
+  return configs.default;
 };

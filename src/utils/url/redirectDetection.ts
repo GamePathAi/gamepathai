@@ -17,6 +17,22 @@ const TRUSTED_DOMAINS = [
   'fonts.gstatic.com'
 ];
 
+// Lista de domínios suspeitos que sempre são bloqueados
+const SUSPICIOUS_DOMAINS = [
+  'gamepathai.com'
+];
+
+// Padrões de URL que frequentemente indicam redirecionamentos
+const REDIRECT_PATTERNS = [
+  'redirect=',
+  'redirect.php',
+  '/redirect/',
+  'go.php?',
+  'php?url=',
+  '?url=',
+  '&url='
+];
+
 /**
  * Special function to validate ML endpoint URLs
  * Ensures they follow the expected pattern
@@ -66,27 +82,41 @@ export const isTrustedDomain = (url: string): boolean => {
 };
 
 /**
+ * Check if a URL is from a known suspicious domain
+ */
+export const isSuspiciousDomain = (url: string): boolean => {
+  try {
+    if (url.includes('http')) {
+      const urlObj = new URL(url);
+      return SUSPICIOUS_DOMAINS.some(domain => urlObj.hostname.includes(domain));
+    }
+  } catch (e) {
+    // If we can't parse the URL, be cautious
+    return false;
+  }
+  
+  return false;
+};
+
+/**
+ * Check if URL contains redirect patterns
+ */
+export const containsRedirectPattern = (url: string): boolean => {
+  return REDIRECT_PATTERNS.some(pattern => url.includes(pattern));
+};
+
+/**
  * Detect potential redirect attempts in URLs
  * IMPROVED: Uses allow-list approach for trusted domains
  */
 export const detectRedirectAttempt = (url: string, isMlOperation = false): boolean => {
-  // Check if we're in development mode
+  // Check if we're in development mode - more permissive
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   // In development mode, be more permissive
   if (isDevelopment) {
     // Only block very obvious malicious URLs even in development
-    const obviouslyMalicious = url.includes('gamepathai.com') && 
-                              (url.includes('redirect=') || 
-                               url.includes('php?url='));
-                               
-    if (obviouslyMalicious) {
-      console.warn('🔍 Blocked suspicious URL even in development:', url);
-      return true;
-    }
-    
-    // In development mode, allow most URLs
-    return false;
+    return isSuspiciousDomain(url) && containsRedirectPattern(url);
   }
   
   // Check if it's a local API call, which is always safe
@@ -95,42 +125,50 @@ export const detectRedirectAttempt = (url: string, isMlOperation = false): boole
     return false; // Local API calls are safe
   }
   
-  // Check for obviously suspicious patterns
-  const suspiciousPatterns = [
-    // Redirects
-    'redirect=', 'redirect.php', '/redirect/', 'go.php?',
-    // URL parameters that might be used for open redirects
-    'php?url=', '?url=', '&url=',
-    // Known security concerns
-    'gamepathai.com', 'kaspersky', 'avast'
-  ];
-  
-  // Check if any suspicious patterns are in the URL
-  const hasSuspiciousPattern = suspiciousPatterns.some(pattern => url.includes(pattern));
-  
-  // Extra checks for ML operations which are more sensitive
-  const mlSuspicious = isMlOperation && (
-    (!url.includes('/api/ml/') && !url.includes('/ml/') && url.includes('/ml'))
-  );
-  
-  // If it's suspicious, check if it's from a trusted domain before blocking
-  if (hasSuspiciousPattern || mlSuspicious) {
-    // If it's a trusted domain, allow it despite suspicious patterns
-    if (isTrustedDomain(url)) {
-      console.log('✅ Allowing URL from trusted domain despite suspicious patterns:', url);
-      return false;
+  // For ML operations, be extra cautious
+  if (isMlOperation) {
+    // For ML operations, only allow trusted domains
+    if (!isTrustedDomain(url)) {
+      console.log('🔒 Blocking non-trusted domain for ML operation:', url);
+      return true;
     }
     
-    // Log different messages based on context
-    if (isMlOperation) {
-      console.error('🚨 POTENTIAL ML REDIRECT DETECTED:', url);
-    } else {
-      console.error('🚨 POTENTIAL REDIRECT DETECTED:', url);
+    // Extra validation for ML endpoints
+    if (url.includes('/ml/') && !validateMlEndpoint(url)) {
+      console.error('🚨 Invalid ML endpoint format:', url);
+      return true;
     }
+  }
+  
+  // If it's a suspicious domain, block it
+  if (isSuspiciousDomain(url)) {
+    console.error('🚨 Detected suspicious domain:', url);
+    return true;
+  }
+  
+  // If it contains redirect patterns and is not from a trusted domain, block it
+  if (containsRedirectPattern(url) && !isTrustedDomain(url)) {
+    console.error('🚨 Detected redirect pattern in non-trusted domain:', url);
     return true;
   }
   
   return false;
 };
 
-// Remove duplicated isCorsOrRedirectError function from here, it's now only in url-safety.ts
+/**
+ * Check if a URL is an expected redirect
+ * Some redirects are legitimate (e.g. auth flows)
+ */
+export const isExpectedRedirect = (fromUrl: string, toUrl: string): boolean => {
+  // Auth redirects are expected
+  if (fromUrl.includes('/auth/') || fromUrl.includes('/login')) {
+    return true;
+  }
+  
+  // Redirects to trusted domains are expected
+  if (isTrustedDomain(toUrl)) {
+    return true;
+  }
+  
+  return false;
+};

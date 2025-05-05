@@ -1,3 +1,4 @@
+
 /**
  * Core ML API client implementation
  * Handles basic fetch operations with ML-specific configurations
@@ -5,12 +6,21 @@
 import { sanitizeApiUrl } from "../../utils/url";
 import { reportMLIssue } from "../../utils/appInitializer";
 import { MLApiError } from "./types";
+import { apiCache } from "../../utils/api/cacheManager";
 
 // Constants
 const ML_BASE_URL = ""; // Empty string means relative URLs
 const isDev = process.env.NODE_ENV === 'development';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
+
+// ML-specific cache TTL values
+const CACHE_TTL = {
+  PREDICTIONS: 30 * 60 * 1000, // 30 minutes for predictions
+  DETECTIONS: 10 * 60 * 1000,  // 10 minutes for detections
+  OPTIMIZATIONS: 60 * 60 * 1000, // 1 hour for optimizations
+  DEFAULT: 5 * 60 * 1000 // 5 minutes default
+};
 
 /**
  * ML API client with specialized configuration for machine learning operations
@@ -20,7 +30,7 @@ export const mlApiClient = {
    * Make a fetch request specifically configured for ML operations
    * Blocks redirects and handles ML-specific errors
    */
-  async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  async fetch<T>(endpoint: string, options: RequestInit = {}, cacheTTL?: number): Promise<T> {
     const isAbsoluteUrl = endpoint.startsWith('http://') || endpoint.startsWith('https://');
     let url = isAbsoluteUrl ? endpoint : `${ML_BASE_URL}${endpoint}`;
     
@@ -48,6 +58,31 @@ export const mlApiClient = {
       headers["Authorization"] = `Bearer ${token}`;
     }
     
+    // Check if we should use cache
+    const isReadOperation = !options.method || options.method === 'GET';
+    if (isReadOperation && cacheTTL !== 0) {
+      const cacheKey = `ml:${url}:${JSON.stringify(options.body || {})}`;
+      
+      try {
+        return await apiCache.getOrFetch<T>(cacheKey, async () => {
+          return await this.performFetch<T>(url, headers, options);
+        }, {
+          ttl: cacheTTL || CACHE_TTL.DEFAULT
+        });
+      } catch (error) {
+        console.warn('Cache operation failed, fallback to regular fetch', error);
+        // Continue with regular fetch
+      }
+    }
+    
+    // Regular fetch without caching
+    return await this.performFetch<T>(url, headers, options);
+  },
+  
+  /**
+   * Perform the actual fetch with ML-specific settings
+   */
+  async performFetch<T>(url: string, headers: Record<string, string>, options: RequestInit): Promise<T> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout for ML
@@ -109,10 +144,11 @@ export const mlApiClient = {
   async withRetry<T>(
     endpoint: string, 
     options: RequestInit = {}, 
-    retries: number = MAX_RETRIES
+    retries: number = MAX_RETRIES, 
+    cacheTTL?: number
   ): Promise<T> {
     try {
-      return await this.fetch(endpoint, options);
+      return await this.fetch(endpoint, options, cacheTTL);
     } catch (error: any) {
       // Check if we have retries left
       if (retries > 0) {
@@ -123,7 +159,7 @@ export const mlApiClient = {
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         
         // Retry with one less retry count
-        return this.withRetry(endpoint, options, retries - 1);
+        return this.withRetry(endpoint, options, retries - 1, cacheTTL);
       }
       
       // If no retries left or it's a redirect issue, throw as ML error
@@ -147,5 +183,131 @@ export const mlApiClient = {
       
       throw error;
     }
+  },
+  
+  /**
+   * Clear ML API cache by endpoint pattern
+   */
+  clearCache(endpointPattern: string): void {
+    // TODO: Implement more targeted cache clearing
+    // For now, we clear all ML cache
+    console.log(`Clearing ML API cache for pattern: ${endpointPattern}`);
+    apiCache.clearAll();
+  }
+};
+
+/**
+ * ML API diagnostic tools
+ */
+export const mlDiagnostics = {
+  /**
+   * Test connectivity to ML endpoints
+   */
+  testConnectivity: async (): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/ml/health', {
+        method: 'GET',
+        headers: {
+          'X-ML-Operation': '1',
+          'X-No-Redirect': '1'
+        },
+        mode: 'cors',
+        cache: 'no-store',
+        redirect: isDev ? 'follow' : 'error'
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error('❌ ML Diagnostics: Connectivity test failed:', error);
+      return false;
+    }
+  },
+  
+  /**
+   * Check for browser extensions that might interfere with ML operations
+   */
+  checkForInterfereingExtensions: (): {detected: boolean, extensions: string[]} => {
+    console.log('🧠 ML Service: Checking for interfering extensions');
+    
+    const interfereingExtensions: string[] = [];
+    
+    // Check for known extension patterns in the DOM
+    if (typeof document !== 'undefined') {
+      // Check for Kaspersky
+      if (document.querySelectorAll('[id*="kaspersky"], [class*="kaspersky"]').length > 0 || 
+          document.querySelectorAll('script[src*="kaspersky"]').length > 0) {
+        interfereingExtensions.push("Kaspersky Web Protection");
+      }
+      
+      // Check for Avast
+      if (document.querySelectorAll('[id*="avast"], [class*="avast"]').length > 0 ||
+          document.querySelectorAll('script[src*="avast"]').length > 0) {
+        interfereingExtensions.push("Avast Online Security");
+      }
+      
+      // Check for AVG
+      if (document.querySelectorAll('[id*="avg"], [class*="avg"]').length > 0 ||
+          document.querySelectorAll('script[src*="avg"]').length > 0) {
+        interfereingExtensions.push("AVG Online Security");
+      }
+      
+      // Check for ad blockers
+      if (document.querySelectorAll('[id*="adblock"], [class*="adblock"]').length > 0 ||
+          document.querySelectorAll('script[src*="adblock"]').length > 0) {
+        interfereingExtensions.push("Ad Blocker");
+      }
+    }
+    
+    return {
+      detected: interfereingExtensions.length > 0,
+      extensions: interfereingExtensions
+    };
+  },
+  
+  /**
+   * Run a comprehensive ML connection test
+   */
+  runDiagnostics: async () => {
+    const results = {
+      health: false,
+      connectivity: false,
+      redirects: false,
+      extensions: [] as string[],
+      endpoints: {} as Record<string, boolean>
+    };
+    
+    // Test basic health endpoint
+    try {
+      results.health = await mlDiagnostics.testConnectivity();
+    } catch (e) {
+      results.health = false;
+    }
+    
+    // Check for extensions
+    const extCheck = mlDiagnostics.checkForInterfereingExtensions();
+    results.extensions = extCheck.extensions;
+    
+    // Test common ML endpoints
+    const endpoints = [
+      '/ml/health',
+      '/api/ml/health',
+      '/api/ml/game-detection',
+      '/api/ml/route-optimizer'
+    ];
+    
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'HEAD',
+          headers: { 'X-ML-Operation': '1', 'X-No-Redirect': '1' },
+          redirect: 'manual'
+        });
+        results.endpoints[endpoint] = response.ok;
+      } catch (e) {
+        results.endpoints[endpoint] = false;
+      }
+    }
+    
+    return results;
   }
 };

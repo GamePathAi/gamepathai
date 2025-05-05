@@ -1,3 +1,4 @@
+
 /**
  * URL and browser diagnostics utilities
  */
@@ -290,8 +291,9 @@ export const testRedirects = async (url: string): Promise<RedirectTest[]> => {
       // Parse and analyze API response for diagnostics if it's likely JSON
       if (contentType && contentType.includes('application/json')) {
         try {
-          // Fix for TypeScript error: cast response.json() to appropriate type
-          const responseJson = await response.json() as Record<string, string>;
+          // Fix for TypeScript error: properly assert the response type
+          const responseData = await response.json();
+          const responseJson = responseData as Record<string, string>;
           
           // Check for API-level redirect indicators
           if (responseJson && 

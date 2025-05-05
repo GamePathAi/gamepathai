@@ -1,4 +1,3 @@
-
 import { EvolutionStorage } from './storage';
 import { MetricAnalyzer } from './metricAnalyzer';
 import { SystemOptimizer } from './systemOptimizer';
@@ -21,6 +20,53 @@ class SelfEvolutionService {
     this.enabledFeatures = new Set(storedData.enabledFeatures);
     
     console.log("🧬 Self-Evolution Service initialized");
+  }
+  
+  /**
+   * Initialize the self-evolution service
+   */
+  public async initialize(): Promise<boolean> {
+    try {
+      console.log("🧬 Initializing Self-Evolution Service...");
+      
+      // Load any necessary remote data
+      // For now, we just return true since initialization is simple
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize self-evolution service:", error);
+      return false;
+    }
+  }
+  
+  /**
+   * Record optimization results for self-evolution
+   */
+  public recordOptimizationResult(
+    optimizationId: string,
+    gameId: string,
+    predictedSettings: Record<string, any>,
+    actualPerformance: { fps: number; frameTime: number; stability: number },
+    expectedPerformance: { fps: number; frameTime: number; stability: number }
+  ): void {
+    try {
+      console.log(`🧬 Recording optimization result: ${optimizationId}`);
+      
+      // Create optimization result object
+      const result: OptimizationResult = {
+        gameId,
+        predictedSettings,
+        actualPerformance,
+        expectedPerformance,
+        timestamp: Date.now()
+      };
+      
+      // Submit the result through the existing method
+      this.submitResults([result]);
+      
+    } catch (error) {
+      console.error("Failed to record optimization result:", error);
+    }
   }
   
   /**

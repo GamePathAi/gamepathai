@@ -3,7 +3,8 @@
  * Fetch interceptor for preventing unwanted redirects
  */
 
-import { detectRedirectAttempt, sanitizeApiUrl, isTrustedDomain } from '../url';
+import { detectRedirectAttempt, sanitizeApiUrl } from '../url';
+import { isTrustedDomain } from '../url/redirectDetection';
 
 /**
  * Intercepts fetch to prevent unwanted redirects

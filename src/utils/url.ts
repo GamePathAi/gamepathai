@@ -1,8 +1,10 @@
+
 /**
  * URL manipulation and security checks
  */
 
 import { getApiBaseUrl } from './url/apiBaseUrl';
+import { isTrustedDomain } from './url/redirectDetection';
 
 /**
  * Detect redirect attempts based on URL patterns
@@ -162,4 +164,4 @@ export const setupNavigationMonitor = (): void => {
 };
 
 // Export the getApiBaseUrl function directly from url.ts
-export { getApiBaseUrl };
+export { getApiBaseUrl, isTrustedDomain };

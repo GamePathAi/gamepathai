@@ -39,8 +39,13 @@ export const retryHandler = {
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         
-        // Use a non-generic function for the recursive call to avoid TypeScript error
-        return this.executeRetry<T>(endpoint, options, retries - 1);
+        // Create a non-generic function to fix the TypeScript error with type parameters
+        const retryFn = (): Promise<T> => {
+          return this.withRetry<T>(endpoint, options, retries - 1);
+        };
+        
+        // Call the non-generic function
+        return retryFn();
       }
       
       // If no retries left or it's a redirect issue, throw as ML error
@@ -68,6 +73,7 @@ export const retryHandler = {
 
   /**
    * Helper method to avoid TypeScript error with generic type parameters in recursive calls
+   * (This is no longer used since we've implemented the retryFn approach above)
    */
   executeRetry<T>(endpoint: string, options: MLApiRequestOptions, retries: number): Promise<T> {
     return this.withRetry(endpoint, options, retries);

@@ -3,7 +3,7 @@
  * ML API cache manager
  * Handles caching of ML API responses
  */
-import { apiCache } from "../../utils/api/cacheManager";
+import { apiCache } from "../../../services/utils/api/cacheManager";
 
 /**
  * Cache TTL constants (in milliseconds)

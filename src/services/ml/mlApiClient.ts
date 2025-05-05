@@ -33,7 +33,7 @@ interface ApiCache {
 
 // Define an empty apiCache object to use as fallback
 const apiCache: ApiCache = {
-  getOrFetch: async <T,>(key: string, fetchFn: () => Promise<T>) => fetchFn(),
+  getOrFetch: async <T>(key: string, fetchFn: () => Promise<T>) => fetchFn(),
   clearAll: () => {}
 };
 
@@ -79,8 +79,8 @@ export const mlApiClient = {
       const cacheKey = `ml:${url}:${JSON.stringify(options.body || {})}`;
       
       try {
-        // Fix: Explicitly define the type parameter for getOrFetch
-        return await apiCache.getOrFetch<T>(cacheKey, async () => {
+        // Fix the untyped function call by using a type assertion
+        return await (apiCache.getOrFetch as <T>(key: string, fetchFn: () => Promise<T>, options?: CacheOptions) => Promise<T>)(cacheKey, async () => {
           return await this.performFetch<T>(url, headers, options);
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT
@@ -164,7 +164,8 @@ export const mlApiClient = {
     cacheTTL?: number
   ): Promise<T> {
     try {
-      return await this.fetch<T>(endpoint, options, cacheTTL);
+      // Fix the untyped function call by specifying the type parameter
+      return await (this.fetch as <T>(endpoint: string, options?: RequestInit, cacheTTL?: number) => Promise<T>)<T>(endpoint, options, cacheTTL);
     } catch (error: any) {
       // Check if we have retries left
       if (retries > 0) {

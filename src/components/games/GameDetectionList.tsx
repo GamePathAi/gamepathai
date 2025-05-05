@@ -49,11 +49,13 @@ const GameDetectionList = () => {
         name: mlGame.name,
         path: mlGame.installPath || '',
         platform: 'ML Detection',
-        lastPlayed: Date.now(), // Required property
-        genre: "Detected", // Required property
+        lastPlayed: Date.now(),
+        genre: "Detected",
         image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(mlGame.name)}`,
         isOptimized: false,
-        optimizationType: "none"
+        optimizationType: "none",
+        // Add executable property to match Game type from useSecureGameDetection
+        executable: mlGame.executable || ''
       } as Game);
     }
   });

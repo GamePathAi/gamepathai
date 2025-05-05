@@ -120,18 +120,24 @@ const detectBrowserExtensions = (): boolean => {
     !!document.querySelector('div[class*="extension"]') ||
     
     // Content script behavior
-    window.performance?.getEntriesByType('resource')
-      .some((resource) => {
-        // First check if resource is a valid object
+    (window.performance && 
+     typeof window.performance.getEntriesByType === 'function' &&
+     window.performance.getEntriesByType('resource')
+      .some((resource: unknown) => {
+        // First ensure resource is an object before type assertion
         if (resource && typeof resource === 'object') {
-          // Now safely access the name property with proper type checking
-          const url = 'name' in resource ? (resource.name as string) : '';
-          return url.includes('chrome-extension://') || 
-                 url.includes('moz-extension://') ||
-                 url.includes('extension');
+          // Use type assertion after checking it's an object
+          const resourceObj = resource as Record<string, unknown>;
+          // Check if the name property exists and is a string
+          if ('name' in resourceObj && typeof resourceObj.name === 'string') {
+            const url = resourceObj.name;
+            return url.includes('chrome-extension://') || 
+                   url.includes('moz-extension://') ||
+                   url.includes('extension');
+          }
         }
         return false;
-      }) ||
+      })) ||
       
     // Extension prototypes (this is how we detect ad blockers)
     (typeof window !== 'undefined' && 

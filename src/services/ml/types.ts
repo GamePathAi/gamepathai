@@ -1,14 +1,8 @@
 
 /**
  * Type definitions for ML API responses and options
+ * This file centralizes all types used across the ML services
  */
-
-export interface MLApiError {
-  status: string | number;
-  message: string;
-  code?: string;
-  details?: any;
-}
 
 /**
  * ML Route Optimizer Response

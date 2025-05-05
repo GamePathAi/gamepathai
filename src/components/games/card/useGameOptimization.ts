@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { mlService, MLOptimizeGameResponse } from "@/services/ml";
+import { MLOptimizeGameResponse } from "@/services/ml";
 import { useSystemInfo } from "@/hooks/useSystemInfo";
 
 interface GameType {
@@ -65,6 +65,8 @@ export const useGameOptimization = (game: GameType) => {
     
     try {
       console.log(`🎮 Starting ML optimization for game: ${game.id}`);
+      
+      const { mlService } = await import("@/services/ml/mlService");
       
       const optimizationOptions = {
         optimizeRoutes: true,

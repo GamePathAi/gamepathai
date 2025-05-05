@@ -1,3 +1,4 @@
+
 /**
  * Core ML API client implementation
  * Handles basic fetch operations with ML-specific configurations
@@ -81,7 +82,7 @@ export const mlApiClient = {
       try {
         // Fix: Use correct type for the function call
         return await apiCache.getOrFetch(cacheKey, async () => {
-          return await this.performFetch(url, headers, options);
+          return await this.performFetch<T>(url, headers, options);
         }, {
           ttl: cacheTTL || CACHE_TTL.DEFAULT
         });
@@ -92,13 +93,13 @@ export const mlApiClient = {
     }
     
     // Regular fetch without caching
-    return await this.performFetch(url, headers, options);
+    return await this.performFetch<T>(url, headers, options);
   },
   
   /**
    * Perform the actual fetch with ML-specific settings
    */
-  async performFetch(url: string, headers: Record<string, string>, options: RequestInit): Promise<any> {
+  async performFetch<T>(url: string, headers: Record<string, string>, options: RequestInit): Promise<T> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout for ML
@@ -118,7 +119,7 @@ export const mlApiClient = {
       
       if (response.status === 204) {
         // No content response
-        return {};
+        return {} as T;
       }
       
       // MODIFIED: Log but allow redirects in development
@@ -146,7 +147,7 @@ export const mlApiClient = {
         }
       }
       
-      return await response.json();
+      return await response.json() as T;
     } catch (error: any) {
       // Log ML API errors for debugging
       console.error('🚨 ML API error:', error);
@@ -175,7 +176,7 @@ export const mlApiClient = {
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         
         // Retry with one less retry count
-        return this.withRetry(endpoint, options, retries - 1, cacheTTL);
+        return this.withRetry<T>(endpoint, options, retries - 1, cacheTTL);
       }
       
       // If no retries left or it's a redirect issue, throw as ML error

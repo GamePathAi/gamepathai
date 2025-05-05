@@ -1,6 +1,7 @@
 
 // Export ML API modules
 export * from './mlApiClient';
+export * from './mlDiagnostics';
 
 // Export types explicitly to avoid duplicate exports
 export type {

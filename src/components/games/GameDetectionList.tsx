@@ -50,7 +50,7 @@ const GameDetectionList = () => {
         path: mlGame.installPath || '',
         platform: 'ML Detection',
         lastPlayed: Date.now(), // Required property
-        genre: "Detected",
+        genre: "Detected", // Required property
         image: `https://placehold.co/600x400/1A2033/ffffff?text=${encodeURIComponent(mlGame.name)}`,
         isOptimized: false,
         optimizationType: "none"

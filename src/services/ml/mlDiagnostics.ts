@@ -1,163 +1,194 @@
 
-/**
- * Diagnostic utilities for ML API
- */
 import { mlApiClient } from './mlApiClient';
-import { MLConnectivityTestResult, MLRedirectProtectionResult, MLExtensionCheckResult, MLUrlTestResult } from './types';
+
+// Define necessary types
+export interface MLConnectivityTestResult {
+  success: boolean;
+  results: Record<string, { success: boolean; error?: string }>;
+}
+
+export interface MLRedirectProtectionResult {
+  protected: boolean;
+  details: string;
+}
+
+export interface MLExtensionCheckResult {
+  detected: boolean;
+  extensions: string[];
+}
+
+export interface MLUrlTestResult {
+  wasRedirected: boolean;
+  finalUrl: string;
+  isGamePathAI: boolean;
+  responseStatus?: number;
+}
+
+const isDev = process.env.NODE_ENV === 'development';
 
 /**
- * Diagnostic utility to test ML API connectivity
+ * ML Diagnostics tools for debugging connectivity issues
  */
 export const mlDiagnostics = {
   /**
-   * Test connectivity to all ML endpoints
+   * Test connectivity to ML endpoints
    */
-  testConnectivity: async (): Promise<MLConnectivityTestResult> => {
-    console.log('🧪 Running ML connectivity diagnostics');
-    
-    const results: Record<string, { success: boolean, error?: string }> = {};
-    let success = true;
-    
-    // Test route optimizer
+  testConnectivity: async (): Promise<boolean> => {
     try {
-      await mlApiClient.fetch('/ml/health/route-optimizer', { method: 'GET' });
-      results['routeOptimizer'] = { success: true };
-    } catch (error: any) {
-      success = false;
-      results['routeOptimizer'] = { 
-        success: false, 
-        error: error.message || 'Unknown error' 
-      };
-    }
-    
-    // Test performance predictor
-    try {
-      await mlApiClient.fetch('/ml/health/performance-predictor', { method: 'GET' });
-      results['performancePredictor'] = { success: true };
-    } catch (error: any) {
-      success = false;
-      results['performancePredictor'] = { 
-        success: false, 
-        error: error.message || 'Unknown error'
-      };
-    }
-    
-    // Test game detection
-    try {
-      await mlApiClient.fetch('/ml/health/game-detection', { method: 'GET' });
-      results['gameDetection'] = { success: true };
-    } catch (error: any) {
-      success = false;
-      results['gameDetection'] = { 
-        success: false, 
-        error: error.message || 'Unknown error'
-      };
-    }
-    
-    // Test de otimização de jogo específico
-    try {
-      // Usar ID de teste genérico apenas para verificar conectividade
-      await mlApiClient.fetch('/ml/health/game-optimization', { method: 'GET' });
-      results['gameOptimization'] = { success: true };
-    } catch (error: any) {
-      success = false;
-      results['gameOptimization'] = { 
-        success: false, 
-        error: error.message || 'Unknown error'
-      };
-    }
-    
-    console.log('🧪 ML diagnostics results:', results);
-    return { success, results };
-  },
-  
-  /**
-   * Check if redirect protection is working
-   */
-  testRedirectProtection: async (): Promise<MLRedirectProtectionResult> => {
-    try {
-      // Tentativa deliberada de usar uma URL que deveria redirecionar
-      const testUrl = '/ml/test-redirect';
+      const response = await fetch('/api/ml/health', {
+        method: 'GET',
+        headers: {
+          'X-ML-Operation': '1',
+          'X-No-Redirect': '1'
+        },
+        mode: 'cors',
+        cache: 'no-store',
+        redirect: isDev ? 'follow' : 'error'
+      });
       
-      await mlApiClient.fetch(testUrl, { method: 'GET' });
-      
-      // Se chegou aqui, não detectou o redirecionamento corretamente
-      return { 
-        protected: false, 
-        details: 'Redirect protection may not be working correctly' 
-      };
-    } catch (error: any) {
-      // Esperamos que lance um erro devido à proteção de redirecionamento
-      if (error.message?.includes('redirect') || error.message?.includes('blocked')) {
-        return { 
-          protected: true, 
-          details: 'Redirect protection is working correctly' 
-        };
-      }
-      
-      return { 
-        protected: false, 
-        details: `Unexpected error: ${error.message}` 
-      };
+      return response.ok;
+    } catch (error) {
+      console.error('❌ ML Diagnostics: Connectivity test failed:', error);
+      return false;
     }
   },
   
   /**
-   * Check for browser extensions that might interfere with ML requests
+   * Check for browser extensions that might interfere with ML operations
    */
-  checkForInterfereingExtensions(): MLExtensionCheckResult {
-    console.log('🔍 Checking for browser extensions that may interfere with ML operations');
+  checkForInterfereingExtensions: (): MLExtensionCheckResult => {
+    console.log('🧠 ML Service: Checking for interfering extensions');
     
-    const potentialIssues: string[] = [];
+    const interfereingExtensions: string[] = [];
     
-    // Check for signs of security software in global objects
-    if (typeof window !== 'undefined') {
-      // Kaspersky check
-      if ('KasperskyLabs' in window) {
-        potentialIssues.push('Kaspersky Security Suite');
+    // Check for known extension patterns in the DOM
+    if (typeof document !== 'undefined') {
+      // Check for Kaspersky
+      if (document.querySelectorAll('[id*="kaspersky"], [class*="kaspersky"]').length > 0 || 
+          document.querySelectorAll('script[src*="kaspersky"]').length > 0) {
+        interfereingExtensions.push("Kaspersky Web Protection");
       }
       
-      // Check for ESET
-      if ('ESETS_ID' in window || document.querySelector('script[src*="eset"]')) {
-        potentialIssues.push('ESET Security');
+      // Check for Avast
+      if (document.querySelectorAll('[id*="avast"], [class*="avast"]').length > 0 ||
+          document.querySelectorAll('script[src*="avast"]').length > 0) {
+        interfereingExtensions.push("Avast Online Security");
       }
       
-      // Check for Avast/AVG
-      if (document.querySelector('script[src*="avast"]') || 
-          document.querySelector('script[src*="avg"]')) {
-        potentialIssues.push('Avast/AVG Antivirus');
-      }
-      
-      // Check for browser extensions that modify content
-      const injectedStyles = Array.from(document.styleSheets).filter(
-        sheet => sheet.href && !sheet.href.startsWith(window.location.origin)
-      ).length;
-      
-      if (injectedStyles > 0) {
-        potentialIssues.push('Content-modifying browser extensions');
+      // Check for AVG
+      if (document.querySelectorAll('[id*="avg"], [class*="avg"]').length > 0 ||
+          document.querySelectorAll('script[src*="avg"]').length > 0) {
+        interfereingExtensions.push("AVG Online Security");
       }
       
       // Check for ad blockers
-      const testAdElement = document.createElement('div');
-      testAdElement.className = 'adsbox';
-      testAdElement.style.height = '1px';
-      testAdElement.style.width = '1px';
-      testAdElement.style.position = 'absolute';
-      testAdElement.style.top = '-1000px';
-      document.body.appendChild(testAdElement);
-      
-      setTimeout(() => {
-        const isAdBlockActive = testAdElement.offsetHeight === 0;
-        if (isAdBlockActive) {
-          potentialIssues.push('Ad blocker extension');
-        }
-        testAdElement.remove();
-      }, 100);
+      if (document.querySelectorAll('[id*="adblock"], [class*="adblock"]').length > 0 ||
+          document.querySelectorAll('script[src*="adblock"]').length > 0) {
+        interfereingExtensions.push("Ad Blocker");
+      }
     }
     
     return {
-      detected: potentialIssues.length > 0,
-      extensions: potentialIssues
+      detected: interfereingExtensions.length > 0,
+      extensions: interfereingExtensions
     };
+  },
+  
+  /**
+   * Run a comprehensive ML connection test
+   */
+  runDiagnostics: async (): Promise<MLConnectivityTestResult> => {
+    const results = {
+      success: false,
+      results: {} as Record<string, { success: boolean; error?: string }>
+    };
+    
+    // Test basic health endpoint
+    try {
+      results.success = await mlDiagnostics.testConnectivity();
+      results.results['health'] = { success: results.success };
+    } catch (e: any) {
+      results.success = false;
+      results.results['health'] = { success: false, error: e.message };
+    }
+    
+    // Check for extensions
+    const extCheck = mlDiagnostics.checkForInterfereingExtensions();
+    results.results['extensions'] = { 
+      success: !extCheck.detected,
+      error: extCheck.detected ? `Detected: ${extCheck.extensions.join(', ')}` : undefined 
+    };
+    
+    // Test common ML endpoints
+    const endpoints = [
+      '/ml/health',
+      '/api/ml/health',
+      '/api/ml/game-detection',
+      '/api/ml/route-optimizer'
+    ];
+    
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'HEAD',
+          headers: { 'X-ML-Operation': '1', 'X-No-Redirect': '1' },
+          redirect: 'manual'
+        });
+        results.results[endpoint] = { success: response.ok };
+      } catch (e: any) {
+        results.results[endpoint] = { success: false, error: e.message };
+      }
+    }
+    
+    return results;
+  },
+
+  /**
+   * Test whether a URL is protected against redirects
+   */
+  testRedirectProtection: async (url: string): Promise<MLRedirectProtectionResult> => {
+    try {
+      // Try to follow redirects
+      const response = await fetch(url, {
+        redirect: 'follow'
+      });
+      
+      return {
+        protected: !response.redirected,
+        details: response.redirected ? 
+          `Redirected to: ${response.url}` : 
+          'No redirect detected'
+      };
+    } catch (e) {
+      return {
+        protected: true,
+        details: 'Redirect blocked by browser or fetch policy'
+      };
+    }
+  },
+  
+  /**
+   * Test a specific URL for redirect issues
+   */
+  testUrl: async (url: string): Promise<MLUrlTestResult> => {
+    try {
+      const response = await fetch(url, {
+        method: 'HEAD',
+        redirect: 'follow'
+      });
+      
+      return {
+        wasRedirected: response.redirected,
+        finalUrl: response.url,
+        isGamePathAI: response.url.includes('gamepathai.com'),
+        responseStatus: response.status
+      };
+    } catch (e) {
+      return {
+        wasRedirected: false,
+        finalUrl: url,
+        isGamePathAI: url.includes('gamepathai.com')
+      };
+    }
   }
 };

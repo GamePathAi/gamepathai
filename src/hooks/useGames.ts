@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gamesService } from "../services/gamesService";
 import { toast } from "sonner";
@@ -10,7 +9,7 @@ export interface Game {
   name: string;
   image: string;
   isOptimized: boolean;
-  genre: string;
+  genre: string;  // Ensure this property is defined
   lastPlayed: number;
   optimizationType?: "both" | "network" | "system" | "none";
   path?: string;

@@ -32,7 +32,11 @@ export const mlCache = {
     fetchFn: () => Promise<T>,
     options: MLCacheOptions = {}
   ): Promise<T> {
-    return coreCache.getOrFetch<T>(key, fetchFn, options);
+    // Adapt MLCacheOptions to CacheOptions by ensuring ttl is present
+    return coreCache.getOrFetch<T>(key, fetchFn, {
+      ttl: options.ttl ?? CACHE_TTL.DEFAULT, // Provide default TTL if not specified
+      forceRefresh: options.forceRefresh
+    });
   },
 
   /**

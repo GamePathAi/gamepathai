@@ -1,4 +1,3 @@
-
 /**
  * Core ML API client implementation
  * Handles basic fetch operations with ML-specific configurations
@@ -139,7 +138,7 @@ export const mlApiClient = {
   
   /**
    * Create a retry wrapper for ML operations that may sometimes fail
-   * Fixed: Resolved TypeScript error with recursive generic function calls
+   * Fixed: TypeScript error with generic recursion
    */
   async withRetry<T>(
     endpoint: string, 
@@ -157,8 +156,11 @@ export const mlApiClient = {
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         
-        // Fix: Use a function wrapper to avoid the TypeScript error with generic recursion
-        return this.withRetry(endpoint, options, retries - 1) as Promise<T>;
+        // Fix for TS2347: Using a non-generic intermediate function
+        const retryFn = () => {
+          return this.withRetry<T>(endpoint, options, retries - 1);
+        };
+        return retryFn();
       }
       
       // If no retries left or it's a redirect issue, throw as ML error

@@ -1,155 +1,110 @@
+
 /**
  * Fetch interceptor for preventing unwanted redirects
  */
 
 import { detectRedirectAttempt, sanitizeApiUrl } from '../url';
 import { isTrustedDomain } from '../url/redirectDetection';
-import { extractApiPath } from '../url/urlSanitization';
 
 /**
  * Intercepts fetch to prevent unwanted redirects
- * Call this function at app initialization to patch global fetch
  */
-export const setupFetchInterceptor = (): void => {
-  if (typeof window === 'undefined') return;
-
+export const setupFetchInterceptor = () => {
   const originalFetch = window.fetch;
-  const isDevelopment = process.env.NODE_ENV === 'development';
   
   window.fetch = async function(input: RequestInfo | URL, init?: RequestInit) {
-    // Get the URL as a string
-    const originalUrl = typeof input === 'string' ? input : input.toString();
-    const isMLOperation = init?.headers && 
-      typeof init.headers === 'object' &&
-      ('X-ML-Operation' in init.headers);
+    try {
+      // Convert input to string URL
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       
-    // Allow local health checks and API calls to proceed without modification
-    if (originalUrl === '/health' || 
-        originalUrl.startsWith('/api/') || 
-        originalUrl.startsWith('/ml/')) {
+      // Check if the URL is trusted
+      if (isTrustedDomain(url)) {
+        // For trusted domains, proceed normally
+        return originalFetch(input, init);
+      }
       
-      // Extract just the path for API calls if it's an absolute URL
-      let apiUrl = extractApiPath(originalUrl);
+      // Check if this URL should be blocked
+      const shouldBlock = detectRedirectAttempt(url);
       
-      console.log('✅ Local API call proceeding:', apiUrl);
+      if (shouldBlock) {
+        console.error(`🚨 Blocked suspicious URL: ${url}`);
+        return Promise.reject(new Error('Blocked potentially harmful URL'));
+      }
       
-      // Add safety headers but don't modify the URL
-      const enhancedInit: RequestInit = {
-        ...init || {},
+      // Sanitize API URLs
+      const sanitizedInput = typeof input === 'string' 
+        ? sanitizeApiUrl(input)
+        : input instanceof URL 
+          ? new Request(sanitizeApiUrl(input.href), init) 
+          : new Request(sanitizeApiUrl(input.url), {
+              ...init,
+              ...input
+            });
+      
+      // Add protection headers to prevent redirects
+      const safeInit = {
+        ...init,
         headers: {
-          ...init?.headers || {},
-          "X-No-Redirect": "1",
-          "X-Requested-With": "XMLHttpRequest",
-          "Cache-Control": "no-cache, no-store",
-          "Pragma": "no-cache"
-        },
-        mode: 'cors',
-        credentials: 'include',
-        cache: 'no-store'
+          ...(init?.headers || {}),
+          'X-No-Redirect': '1'
+        }
       };
       
-      // In production use error for redirect, in development allow following
-      if (!isDevelopment) {
-        enhancedInit.redirect = 'error';
-      }
-      
-      try {
-        const response = await originalFetch(apiUrl, enhancedInit);
-        
-        // Even for API calls, check if a redirect happened
-        if (response.url && apiUrl && !response.url.endsWith(apiUrl)) {
-          console.warn(`⚠️ API redirect detected: ${apiUrl} -> ${response.url}`);
-          
-          if (response.url.includes('gamepathai.com') && !isDevelopment) {
-            console.error('⚠️ Blocked redirect to gamepathai.com:', response.url);
-            throw new Error('Blocked redirect to gamepathai.com');
-          }
-        }
-        
-        return response;
-      } catch (error) {
-        // Retry API calls once with different approach if they fail
-        if (!originalUrl.includes('health')) {
-          try {
-            console.log(`⚠️ Retrying API call with different approach: ${apiUrl}`);
-            
-            // Try with a relative URL if the original was absolute
-            if (originalUrl.startsWith('http') && apiUrl !== originalUrl) {
-              console.log('↩️ Retrying with relative URL');
-              return await originalFetch(apiUrl, enhancedInit);
-            }
-            
-            // Otherwise, try with a different fetch mode
-            enhancedInit.mode = 'no-cors';
-            return await originalFetch(apiUrl, enhancedInit);
-          } catch (retryError) {
-            console.error('↩️ API retry also failed:', retryError);
-          }
-        }
-        
-        throw error;
-      }
+      // Call the original fetch with sanitized parameters
+      return originalFetch(sanitizedInput, safeInit);
+    } catch (error) {
+      console.error('Error in fetch interceptor:', error);
+      return originalFetch(input, init);
+    }
+  };
+};
+
+/**
+ * Reset the fetch interceptor to its original state
+ */
+export const resetFetchInterceptor = () => {
+  // This is intentionally left simple as we don't store the original fetch
+  // In a real implementation, you might want to store the original fetch and restore it
+  console.log('Resetting fetch interceptor is not implemented');
+};
+
+/**
+ * Creates a fetch function with additional security checks
+ */
+export const createSecureFetch = () => {
+  return async function secureFetch(url: string, options?: RequestInit): Promise<Response> {
+    // Check for suspicious URLs
+    if (detectRedirectAttempt(url)) {
+      console.error(`🚨 Blocked suspicious URL in secureFetch: ${url}`);
+      throw new Error('Blocked potentially harmful URL');
     }
     
-    // For non-local URLs, apply sanitization
-    let url = sanitizeApiUrl(originalUrl);
-    
-    if (isMLOperation) {
-      console.log('🧠 ML Fetch request to:', url);
-    } else {
-      console.log('🔍 Fetch request to:', url);
-    }
-    
-    // Check for suspicious URLs that might be redirects
-    const isSuspicious = detectRedirectAttempt(url, isMLOperation);
-    
-    // If the URL is suspicious but from a trusted domain, allow it to proceed
-    if (isSuspicious && isTrustedDomain(url)) {
-      console.log('✅ Allowing trusted domain despite suspicious patterns:', url);
-    } else if (isSuspicious) {
-      console.error('🚨 Blocked suspicious URL:', url);
-      throw new Error('Blocked potential redirect URL: ' + url);
-    }
-    
-    // Always add safety headers to all requests
-    const enhancedInit: RequestInit = {
-      ...init || {},
+    // Add security headers
+    const secureOptions = {
+      ...options,
       headers: {
-        ...init?.headers || {},
-        "X-No-Redirect": "1",
-        "X-Requested-With": "XMLHttpRequest",
-        "Cache-Control": "no-cache, no-store",
-        "Pragma": "no-cache"
-      },
-      mode: 'cors',
-      credentials: 'include',
-      cache: 'no-store'
+        ...(options?.headers || {}),
+        'X-No-Redirect': '1',
+        'Cache-Control': 'no-cache, no-store',
+      }
     };
     
-    // In development, allow redirects to be followed
-    // In production, error on redirects
-    enhancedInit.redirect = isDevelopment ? 'follow' : 'error';
-    
     try {
-      const response = await originalFetch(url, enhancedInit);
+      const response = await fetch(url, secureOptions);
       
-      // Check if a redirect happened despite our efforts
-      if (response.url && response.url !== url) {
-        console.log('⚠️ Redirect occurred:', url, '->', response.url);
+      // Check if the response URL is different from the requested URL (redirect happened)
+      if (response.url && !url.endsWith(new URL(response.url).pathname)) {
+        console.warn(`⚠️ Redirect detected: ${url} -> ${response.url}`);
         
-        // Only block gamepathai.com redirects
-        if (response.url.includes('gamepathai.com') && !isDevelopment) {
-          console.error('⚠️ Blocked redirect to gamepathai.com:', response.url);
-          throw new Error('Blocked redirect to: ' + response.url);
+        // If redirected to a non-trusted domain, throw an error
+        if (!isTrustedDomain(response.url)) {
+          throw new Error(`Redirect to untrusted domain: ${response.url}`);
         }
       }
       
       return response;
     } catch (error) {
-      // Only log significant errors
-      if (error.message && !error.message.includes('Failed to fetch')) {
-        console.error('❌ Fetch error:', error.message);
-      }
+      console.error(`Network error with ${url}:`, error);
       throw error;
     }
   };

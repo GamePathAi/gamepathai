@@ -1,3 +1,4 @@
+
 /**
  * URL and browser diagnostics utilities
  */
@@ -134,8 +135,10 @@ const detectBrowserExtensions = (): boolean => {
       }) ||
       
     // Extension prototypes (this is how we detect ad blockers)
-    Object.prototype.hasOwnProperty.call(window, 'chrome') && 
-    Object.prototype.hasOwnProperty.call(window.chrome, 'runtime')
+    (typeof window !== 'undefined' && 
+     'chrome' in window && 
+     window.chrome && 
+     'runtime' in window.chrome)
   );
   
   return hasExtensions;

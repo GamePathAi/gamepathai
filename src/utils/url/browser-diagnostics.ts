@@ -121,11 +121,16 @@ const detectBrowserExtensions = (): boolean => {
     
     // Content script behavior
     window.performance?.getEntriesByType('resource')
-      .some((resource: any) => {
-        const url = resource.name || '';
-        return url.includes('chrome-extension://') || 
-               url.includes('moz-extension://') ||
-               url.includes('extension');
+      .some((resource) => {
+        // First check if resource is a valid object
+        if (resource && typeof resource === 'object') {
+          // Now safely access the name property with proper type checking
+          const url = 'name' in resource ? (resource.name as string) : '';
+          return url.includes('chrome-extension://') || 
+                 url.includes('moz-extension://') ||
+                 url.includes('extension');
+        }
+        return false;
       }) ||
       
     // Extension prototypes (this is how we detect ad blockers)
@@ -185,4 +190,3 @@ export const detectSandboxEnvironment = (): boolean => {
     (navigator.serviceWorker && 'serviceWorker' in navigator === false)
   );
 };
-

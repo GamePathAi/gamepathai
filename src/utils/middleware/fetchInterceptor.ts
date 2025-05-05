@@ -1,10 +1,10 @@
-
 /**
  * Fetch interceptor for preventing unwanted redirects
  */
 
 import { detectRedirectAttempt, sanitizeApiUrl } from '../url';
 import { isTrustedDomain } from '../url/redirectDetection';
+import { extractApiPath } from '../url/urlSanitization';
 
 /**
  * Intercepts fetch to prevent unwanted redirects
@@ -27,7 +27,11 @@ export const setupFetchInterceptor = (): void => {
     if (originalUrl === '/health' || 
         originalUrl.startsWith('/api/') || 
         originalUrl.startsWith('/ml/')) {
-      console.log('✅ Local API call proceeding normally:', originalUrl);
+      
+      // Extract just the path for API calls if it's an absolute URL
+      let apiUrl = extractApiPath(originalUrl);
+      
+      console.log('✅ Local API call proceeding:', apiUrl);
       
       // Add safety headers but don't modify the URL
       const enhancedInit: RequestInit = {
@@ -49,7 +53,42 @@ export const setupFetchInterceptor = (): void => {
         enhancedInit.redirect = 'error';
       }
       
-      return originalFetch(originalUrl, enhancedInit);
+      try {
+        const response = await originalFetch(apiUrl, enhancedInit);
+        
+        // Even for API calls, check if a redirect happened
+        if (response.url && apiUrl && !response.url.endsWith(apiUrl)) {
+          console.warn(`⚠️ API redirect detected: ${apiUrl} -> ${response.url}`);
+          
+          if (response.url.includes('gamepathai.com') && !isDevelopment) {
+            console.error('⚠️ Blocked redirect to gamepathai.com:', response.url);
+            throw new Error('Blocked redirect to gamepathai.com');
+          }
+        }
+        
+        return response;
+      } catch (error) {
+        // Retry API calls once with different approach if they fail
+        if (!originalUrl.includes('health')) {
+          try {
+            console.log(`⚠️ Retrying API call with different approach: ${apiUrl}`);
+            
+            // Try with a relative URL if the original was absolute
+            if (originalUrl.startsWith('http') && apiUrl !== originalUrl) {
+              console.log('↩️ Retrying with relative URL');
+              return await originalFetch(apiUrl, enhancedInit);
+            }
+            
+            // Otherwise, try with a different fetch mode
+            enhancedInit.mode = 'no-cors';
+            return await originalFetch(apiUrl, enhancedInit);
+          } catch (retryError) {
+            console.error('↩️ API retry also failed:', retryError);
+          }
+        }
+        
+        throw error;
+      }
     }
     
     // For non-local URLs, apply sanitization
@@ -62,7 +101,7 @@ export const setupFetchInterceptor = (): void => {
     }
     
     // Check for suspicious URLs that might be redirects
-    const isSuspicious = detectRedirectAttempt(url);
+    const isSuspicious = detectRedirectAttempt(url, isMLOperation);
     
     // If the URL is suspicious but from a trusted domain, allow it to proceed
     if (isSuspicious && isTrustedDomain(url)) {
@@ -108,8 +147,8 @@ export const setupFetchInterceptor = (): void => {
       return response;
     } catch (error) {
       // Only log significant errors
-      if (!error.message.includes('Failed to fetch')) {
-        console.error('❌ Fetch error:', error);
+      if (error.message && !error.message.includes('Failed to fetch')) {
+        console.error('❌ Fetch error:', error.message);
       }
       throw error;
     }

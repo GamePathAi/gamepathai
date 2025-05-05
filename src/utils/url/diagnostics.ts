@@ -1,4 +1,3 @@
-
 /**
  * URL and browser diagnostics utilities
  */
@@ -90,4 +89,129 @@ export const detectRedirectScripts = (): void => {
       console.warn('⚠️ Meta refresh redirect detected:', meta.getAttribute('content'));
     }
   });
+};
+
+/**
+ * Utilities for diagnosing URL and connection issues
+ */
+
+import { isTrustedDomain } from './redirectDetection';
+
+/**
+ * Get information about the current connection state
+ */
+export const getDiagnosticInfo = () => {
+  const info = {
+    userAgent: navigator.userAgent,
+    hostname: window.location.hostname,
+    protocol: window.location.protocol,
+    hasServiceWorker: 'serviceWorker' in navigator,
+    hasExtensions: detectBrowserExtensions(),
+    corsMode: getCorsMode(),
+    referrer: document.referrer
+  };
+  
+  return info;
+};
+
+/**
+ * Attempt to detect browser extensions that might affect connections
+ */
+const detectBrowserExtensions = (): boolean => {
+  // Look for common extension interference
+  const hasExtensions = (
+    // Extension DOM markers
+    !!document.querySelector('div[id*="extension"]') ||
+    !!document.querySelector('div[class*="extension"]') ||
+    
+    // Content script behavior
+    window.performance?.getEntriesByType('resource')
+      .some((resource: any) => {
+        const url = resource.name || '';
+        return url.includes('chrome-extension://') || 
+               url.includes('moz-extension://') ||
+               url.includes('extension');
+      }) ||
+      
+    // Extension prototypes (this is how we detect ad blockers)
+    Object.prototype.hasOwnProperty.call(window, 'chrome') && 
+    Object.prototype.hasOwnProperty.call(window.chrome, 'runtime')
+  );
+  
+  return hasExtensions;
+};
+
+/**
+ * Get information about the current CORS mode
+ */
+const getCorsMode = (): string => {
+  try {
+    // Test if the browser blocks access to a cross-origin frame, which would be blocked in strict mode
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    // Try to access contentWindow - will fail if strict CORS
+    try {
+      const strictMode = !iframe.contentWindow || 
+                        !iframe.contentWindow.location;
+      
+      document.body.removeChild(iframe);
+      return strictMode ? 'strict' : 'relaxed';
+    } catch (e) {
+      document.body.removeChild(iframe);
+      return 'strict';
+    }
+  } catch (e) {
+    return 'unknown';
+  }
+};
+
+/**
+ * Check if the current site is being hosted in a sandbox
+ * This can affect network connectivity
+ */
+export const detectSandboxEnvironment = (): boolean => {
+  // Check for common sandbox indicators
+  return (
+    // Check iframe sandbox attribute
+    (window !== window.parent) || 
+    
+    // Check for restricted origin
+    !document.domain || 
+    document.domain === "" ||
+    
+    // CSP restrictions
+    (!!document.currentScript && document.currentScript.getAttribute('nonce') !== null) ||
+    
+    // Service worker blocked
+    (navigator.serviceWorker && 'serviceWorker' in navigator === false)
+  );
+};
+
+/**
+ * Check if a URL is safe according to our security rules
+ */
+export const isUrlSafe = (url: string): boolean => {
+  // Checks if a URL is safe according to our security rules
+  if (!url) return false;
+  
+  // Relative URLs are always safe
+  if (url.startsWith('/') || url.startsWith('#')) return true;
+  
+  // Trusted domains are safe
+  if (isTrustedDomain(url)) return true;
+  
+  // Check for suspicious patterns
+  const hasSuspiciousPattern = [
+    'php?url=', '?url=', '&url=',
+    'redirect=', 'redirect.php', '/redirect/', 
+    'go.php?', 'gamepathai.com'
+  ].some(pattern => url.includes(pattern));
+  
+  // If it has suspicious patterns, it's not safe
+  if (hasSuspiciousPattern) return false;
+  
+  // Otherwise consider it safe
+  return true;
 };

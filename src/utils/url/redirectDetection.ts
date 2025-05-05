@@ -5,6 +5,18 @@
 
 import { isProduction } from './environmentDetection';
 
+// Lista de domínios confiáveis que são sempre permitidos
+const TRUSTED_DOMAINS = [
+  'localhost',
+  '127.0.0.1',
+  'gamepathai-dev-lb-1728469102.us-east-1.elb.amazonaws.com',
+  'gamepathai-dev-backup.us-east-1.elb.amazonaws.com',
+  'js.stripe.com',
+  'api.stripe.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com'
+];
+
 /**
  * Special function to validate ML endpoint URLs
  * Ensures they follow the expected pattern
@@ -40,20 +52,8 @@ export const isTrustedDomain = (url: string): boolean => {
     if (url.includes('http')) {
       const urlObj = new URL(url);
       
-      // List of trusted domains
-      const trustedDomains = [
-        'localhost',
-        '127.0.0.1',
-        'gamepathai-dev-lb-1728469102.us-east-1.elb.amazonaws.com',
-        'gamepathai-dev-backup.us-east-1.elb.amazonaws.com',
-        'js.stripe.com',
-        'api.stripe.com',
-        'fonts.googleapis.com',
-        'fonts.gstatic.com'
-      ];
-      
       // Check if the hostname is in the trusted domains list
-      return trustedDomains.some(domain => urlObj.hostname.includes(domain));
+      return TRUSTED_DOMAINS.some(domain => urlObj.hostname.includes(domain));
     }
   } catch (e) {
     // If we can't parse the URL, assume it's not trusted
@@ -95,12 +95,18 @@ export const detectRedirectAttempt = (url: string, isMlOperation = false): boole
     return false; // Local API calls are safe
   }
   
-  // Check for obviously malicious patterns
-  const suspicious = url.includes('gamepathai.com') || 
-                    url.includes('redirect=') ||
-                    url.includes('php?url=') ||
-                    url.includes('?url=') ||
-                    url.includes('&url=');
+  // Check for obviously suspicious patterns
+  const suspiciousPatterns = [
+    // Redirects
+    'redirect=', 'redirect.php', '/redirect/', 'go.php?',
+    // URL parameters that might be used for open redirects
+    'php?url=', '?url=', '&url=',
+    // Known security concerns
+    'gamepathai.com', 'kaspersky', 'avast'
+  ];
+  
+  // Check if any suspicious patterns are in the URL
+  const hasSuspiciousPattern = suspiciousPatterns.some(pattern => url.includes(pattern));
   
   // Extra checks for ML operations which are more sensitive
   const mlSuspicious = isMlOperation && (
@@ -108,7 +114,7 @@ export const detectRedirectAttempt = (url: string, isMlOperation = false): boole
   );
   
   // If it's suspicious, check if it's from a trusted domain before blocking
-  if (suspicious || mlSuspicious) {
+  if (hasSuspiciousPattern || mlSuspicious) {
     // If it's a trusted domain, allow it despite suspicious patterns
     if (isTrustedDomain(url)) {
       console.log('✅ Allowing URL from trusted domain despite suspicious patterns:', url);
@@ -125,4 +131,19 @@ export const detectRedirectAttempt = (url: string, isMlOperation = false): boole
   }
   
   return false;
+};
+
+/**
+ * Check if a network error might be due to CORS or redirect issues
+ */
+export const isCorsOrRedirectError = (error: any): boolean => {
+  if (!error) return false;
+  
+  const errorString = String(error).toLowerCase();
+  return (
+    errorString.includes('cors') || 
+    errorString.includes('cross-origin') ||
+    errorString.includes('redirect') ||
+    errorString.includes('opaque')
+  );
 };

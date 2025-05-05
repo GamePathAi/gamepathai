@@ -1,5 +1,7 @@
 
 import { getApiBaseUrl } from "../../utils/url";
+import { isTrustedDomain } from "../../utils/url/redirectDetection";
+import { extractApiPath } from "../../utils/url/urlSanitization";
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -96,6 +98,19 @@ export const testAWSConnection = async () => {
       
       if (response.ok) {
         console.log(`AWS connection successful with ${method} ${endpoint}`);
+        
+        // Check if the response URL is different than the requested URL
+        // This indicates a redirect happened
+        if (response.url && !response.url.includes(endpoint)) {
+          console.warn(`⚠️ AWS connection succeeded but with redirect: ${endpoint} -> ${response.url}`);
+          
+          // If the redirect is to gamepathai.com, consider it a failure
+          if (response.url.includes('gamepathai.com')) {
+            console.error(`⚠️ AWS connection redirected to gamepathai.com`);
+            continue; // Try next approach
+          }
+        }
+        
         return true;
       }
     } catch (error) {
@@ -107,4 +122,46 @@ export const testAWSConnection = async () => {
   
   console.error("All AWS connection tests failed");
   return false;
+};
+
+/**
+ * New function to test a specific ML endpoint without triggering redirects
+ */
+export const testMlEndpoint = async (endpoint: string) => {
+  try {
+    // Make sure the endpoint is relative
+    const relativeEndpoint = extractApiPath(endpoint);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(relativeEndpoint, {
+      method: 'HEAD',
+      headers: {
+        "X-No-Redirect": "1",
+        "X-ML-Operation": "1",
+        "Cache-Control": "no-cache, no-store",
+        "Pragma": "no-cache"
+      },
+      signal: controller.signal,
+      mode: 'cors',
+      credentials: 'include',
+      cache: 'no-store',
+      redirect: 'error'
+    });
+    
+    clearTimeout(timeoutId);
+    
+    return {
+      success: response.ok,
+      status: response.status,
+      url: response.url
+    };
+  } catch (error) {
+    console.error(`ML endpoint test failed for ${endpoint}:`, error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
 };

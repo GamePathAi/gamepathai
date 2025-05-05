@@ -164,7 +164,7 @@ export const mlApiClient = {
     cacheTTL?: number
   ): Promise<T> {
     try {
-      // Fixed: Don't use generics with untyped function call
+      // Fixed: Use type assertion instead of generic parameter
       return await this.fetch(endpoint, options, cacheTTL) as T;
     } catch (error: any) {
       // Check if we have retries left
@@ -314,6 +314,7 @@ export const mlDiagnostics = {
     
     for (const endpoint of endpoints) {
       try {
+        // Fixed: Remove generic type parameter
         const response = await fetch(endpoint, {
           method: 'HEAD',
           headers: { 'X-ML-Operation': '1', 'X-No-Redirect': '1' },

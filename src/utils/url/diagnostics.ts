@@ -1,4 +1,3 @@
-
 /**
  * URL and browser diagnostics utilities
  */
@@ -295,8 +294,9 @@ export const testRedirects = async (url: string): Promise<RedirectTest[]> => {
           const responseData = await response.json();
           
           // First check if the response is an object before accessing properties
-          if (responseData && typeof responseData === 'object' && responseData !== null) {
+          if (responseData !== null && typeof responseData === 'object') {
             // Safe to access properties now that we've checked it's an object
+            // Use type assertion after validation
             const responseJson = responseData as Record<string, unknown>;
             
             // Check for API-level redirect indicators
